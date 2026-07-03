@@ -1033,44 +1033,67 @@ export default function HomeScreen({ navigation }) {
     );
   }, [selectedServiceCat, selectedCats, cart, addToCart, removeFromCart, userCoords, getDistance, navigation, favoriteIds, handleToggleFavorite]);
 
+  // Locate button — re-detect GPS and sort by nearby (web parity)
+  const handleLocate = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setLocDenied(true); return; }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      setUserCoords(coords);
+      setSort('nearby');
+      fetchBySort('nearby', coords);
+    } catch { setLocDenied(true); }
+  }, [fetchBySort]);
+
+  // Hero theme (web --t-hero-* parity)
+  const heroBg     = isDark ? '#10162b' : '#e0e7ff';
+  const heroText   = isDark ? '#ffffff' : '#1e1b4b';
+  const heroMuted  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,27,75,0.5)';
+  const heroCard   = isDark ? 'rgba(31,41,55,0.6)' : 'rgba(255,255,255,0.95)';
+  const heroBorder = isDark ? '#374151' : 'rgba(99,102,241,0.22)';
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border, paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerTop}>
-          <View style={{ flex: 1 }}>
-            <AppText style={[styles.headerTitle, { color: theme.text }]}>
-              {getGreeting()},{' '}
-              <AppText style={{ color: theme.accent }}>{user?.name || user?.firstName || 'there'}</AppText>
-            </AppText>
-            <AppText style={[styles.headerSub, { color: theme.subText }]}>Where would you like to book today?</AppText>
+      {/* Hero header (web parity: navbar row + greeting overline + pill search) */}
+      <View style={{ backgroundColor: heroBg, paddingTop: insets.top + 10, paddingBottom: 0, overflow: 'hidden' }}>
+        {/* Top bar: wordmark + bell + theme */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 18, gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
+            <Image source={require('../../../assets/Icon-1024.png')} style={{ width: 34, height: 34, borderRadius: 9 }} />
+            <AppText style={{ fontSize: 19, fontWeight: '800', color: '#a78bfa', letterSpacing: -0.3 }}>GlowLoox</AppText>
           </View>
-          <TouchableOpacity style={[styles.menuBtn, { backgroundColor: theme.bg }]} onPress={() => navigation.navigate('Map')}>
-            <Ionicons name="map-outline" size={21} color={theme.subText} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.menuBtn, { backgroundColor: theme.bg }]} onPress={toggleTheme}>
-            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.subText} />
-          </TouchableOpacity>
           {isAuthenticated && (
-            <TouchableOpacity style={[styles.menuBtn, { backgroundColor: theme.bg }]} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={20} color={theme.subText} />
+            <TouchableOpacity style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: heroCard, borderWidth: 1, borderColor: heroBorder, alignItems: 'center', justifyContent: 'center' }} onPress={() => navigation.navigate('Notifications')}>
+              <Ionicons name="notifications-outline" size={18} color={heroText} />
               {unreadCount > 0 && (
-                <View style={[styles.notifBadge, { borderColor: theme.card }]}>
+                <View style={[styles.notifBadge, { borderColor: heroBg }]}>
                   <AppText style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</AppText>
                 </View>
               )}
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: heroCard, borderWidth: 1, borderColor: heroBorder, alignItems: 'center', justifyContent: 'center' }} onPress={toggleTheme}>
+            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={heroText} />
+          </TouchableOpacity>
         </View>
 
-        {/* Search bar */}
-        <View style={[styles.searchBar, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-          <Ionicons name="search-outline" size={18} color="#6b7280" />
+        {/* Greeting overline */}
+        <AppText style={{ paddingHorizontal: 16, marginBottom: 14, fontSize: 12, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase', color: '#a5b4fc' }}>
+          {getGreeting()}{user?.name || user?.firstName ? `, ${user?.name || user?.firstName}` : ''}
+        </AppText>
+
+        {/* Pill search bar (web SearchInput parity) */}
+        <View style={{ marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, paddingRight: 6, height: 52, borderRadius: 999, backgroundColor: heroCard, borderWidth: 1.5, borderColor: heroBorder }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="map-outline" size={18} color={heroMuted} />
+          </TouchableOpacity>
+          <View style={{ width: 1, height: 18, backgroundColor: heroBorder }} />
           <TextInput
-            style={[styles.searchInput, { color: theme.text }]}
+            style={{ flex: 1, fontSize: 15, color: heroText, minWidth: 0, fontWeight: '500', paddingVertical: 0 }}
             placeholder="Search salons, services, city…"
-            placeholderTextColor={theme.placeholder}
+            placeholderTextColor={heroMuted}
             value={searchText}
             onChangeText={handleSearch}
             returnKeyType="search"
@@ -1078,10 +1101,16 @@ export default function HomeScreen({ navigation }) {
           {(searching || searchText.length > 0) && (
             <TouchableOpacity onPress={() => handleSearch('')}>
               {searching
-                ? <ActivityIndicator size="small" color="#6b7280" />
-                : <Ionicons name="close-circle" size={18} color="#9ca3af" />}
+                ? <ActivityIndicator size="small" color="#818cf8" />
+                : <Ionicons name="close" size={16} color={heroMuted} />}
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={handleLocate} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+            <Ionicons name="locate-outline" size={16} color={heroMuted} />
+          </TouchableOpacity>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: searchText ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(30,27,75,0.08)'), alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="search" size={17} color={searchText ? '#fff' : heroMuted} />
+          </View>
         </View>
       </View>
 
@@ -1095,31 +1124,43 @@ export default function HomeScreen({ navigation }) {
           ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6366f1']} tintColor={theme.accent} />
           : undefined}
         ListHeaderComponent={
-          <View>
-            {/* Hero circular chips — exactly like web */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              style={{ paddingVertical: 14 }}
-              contentContainerStyle={{ paddingHorizontal: 8, gap: 0 }}>
-              {HERO_CHIPS.map(chip => {
-                const active = chip.cat === null ? selectedCats.length === 0 : selectedCats.includes(chip.cat);
-                return (
-                  <TouchableOpacity key={chip.label} onPress={() => handleCategory(chip.cat)}
-                    style={{ alignItems: 'center', paddingHorizontal: 10 }} activeOpacity={0.8}>
-                    <View style={[
-                      styles.heroCircle,
-                      { backgroundColor: theme.card, borderColor: theme.border },
-                      active && styles.heroCircleActive,
-                    ]}>
-                      <Ionicons name={chip.icon} size={22} color={active ? '#fff' : theme.subText} />
-                    </View>
-                    <AppText style={[styles.heroLabel, { color: active ? theme.text : theme.subText }, active && { fontWeight: '700' }]}>
-                      {chip.label}
-                    </AppText>
-                    {active && <View style={styles.heroActiveDot} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+          <View style={{ marginHorizontal: -16 }}>
+            {/* Hero circular chips — on hero background with accent line (web parity) */}
+            <View style={{ backgroundColor: heroBg, marginBottom: 12 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 8, paddingTop: 18, paddingBottom: 10 }}>
+                {HERO_CHIPS.map(chip => {
+                  const active = chip.cat === null ? selectedCats.length === 0 : selectedCats.includes(chip.cat);
+                  return (
+                    <TouchableOpacity key={chip.label} onPress={() => handleCategory(chip.cat)}
+                      style={{ alignItems: 'center', paddingHorizontal: 14, transform: [{ translateY: active ? -6 : 0 }] }} activeOpacity={0.8}>
+                      {/* Glow ring on active */}
+                      <View style={active ? { borderRadius: 33, padding: 4, backgroundColor: 'rgba(99,102,241,0.18)' } : { padding: 4 }}>
+                        <View style={[
+                          styles.heroCircle,
+                          { backgroundColor: heroCard, borderColor: heroBorder },
+                          active && styles.heroCircleActive,
+                        ]}>
+                          <Ionicons name={chip.icon} size={22} color={active ? '#fff' : heroMuted} />
+                        </View>
+                      </View>
+                      <AppText style={[styles.heroLabel, { color: active ? heroText : heroMuted, marginTop: 4 }, active && { fontWeight: '700' }]}>
+                        {chip.label}
+                      </AppText>
+                      {active && <View style={styles.heroActiveDot} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              {/* Instamart-style accent line */}
+              <View style={{ height: 3, flexDirection: 'row', opacity: 0.85 }}>
+                <View style={{ flex: 1, backgroundColor: 'transparent' }} />
+                <View style={{ flex: 2, backgroundColor: '#818cf8' }} />
+                <View style={{ flex: 3, backgroundColor: '#6366f1' }} />
+                <View style={{ flex: 2, backgroundColor: '#a78bfa' }} />
+                <View style={{ flex: 1, backgroundColor: 'transparent' }} />
+              </View>
+            </View>
 
             {/* Active category banner */}
             {activeChip && (
@@ -1171,34 +1212,14 @@ export default function HomeScreen({ navigation }) {
               )}
             </View>
 
-            {/* Quick nav shortcuts */}
-            {isAuthenticated && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 8 }}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingRight: 24 }}>
-                <TouchableOpacity onPress={() => navigation.getParent()?.navigate('BookingsTab')}
-                  style={[styles.navShortcut, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Ionicons name="calendar-outline" size={14} color={theme.text} />
-                  <AppText style={[styles.navShortcutText, { color: theme.text }]}>My Bookings</AppText>
-                  {upcomingCount > 0 && (
-                    <View style={[styles.navBadge, { backgroundColor: theme.accent }]}>
-                      <AppText style={styles.navBadgeText}>{upcomingCount}</AppText>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.getParent()?.navigate('FavoritesTab')}
-                  style={[styles.navShortcut, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Ionicons name="heart-outline" size={14} color={theme.text} />
-                  <AppText style={[styles.navShortcutText, { color: theme.text }]}>Saved Salons</AppText>
-                </TouchableOpacity>
-              </ScrollView>
-            )}
-
-            {/* Section header */}
+            {/* Section header — NEAR YOU eyebrow + bold title (web parity) */}
             {!loading && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 4 }}>
+              <View style={{ paddingHorizontal: 16, marginTop: 6, marginBottom: 4 }}>
+                <AppText style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.6, textTransform: 'uppercase', color: '#818cf8', marginBottom: 4 }}>
+                  {isSearchActive ? 'Results' : 'Near You'}
+                </AppText>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <AppText style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>{sectionTitle}</AppText>
+                  <AppText style={{ fontSize: 20, fontWeight: '800', color: theme.text, letterSpacing: -0.5 }}>{sectionTitle}</AppText>
                   {isSearchActive && (
                     <TouchableOpacity onPress={() => handleSearch('')}>
                       <AppText style={{ fontSize: 13, color: theme.accent, fontWeight: '600' }}>Show All</AppText>
@@ -1288,10 +1309,10 @@ const styles = StyleSheet.create({
   searchBar:     { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, height: 46, gap: 8, borderWidth: 1 },
   searchInput:   { flex: 1, fontSize: 14 },
 
-  heroCircle:     { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, marginBottom: 6 },
-  heroCircleActive:{ backgroundColor: '#6366f1', borderColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.55, shadowRadius: 12, elevation: 6 },
+  heroCircle:     { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  heroCircleActive:{ backgroundColor: '#6366f1', borderColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.55, shadowRadius: 14, elevation: 8 },
   heroLabel:      { fontSize: 11, textAlign: 'center' },
-  heroActiveDot:  { width: 16, height: 3, borderRadius: 999, backgroundColor: '#6366f1', marginTop: 4 },
+  heroActiveDot:  { width: 20, height: 3, borderRadius: 999, backgroundColor: '#6366f1', marginTop: 4, shadowColor: '#6366f1', shadowOpacity: 0.8, shadowRadius: 4 },
 
   activeBanner:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
   activeBannerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },

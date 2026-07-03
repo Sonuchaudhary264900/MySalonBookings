@@ -7,7 +7,7 @@ import {
 import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
 import api from '../../services/api';
@@ -484,6 +484,7 @@ function ChatModal({ booking, onClose, theme }) {
 // ── BookingCard ───────────────────────────────────────────────
 
 function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, isNext }) {
+  const navigation = useNavigation();
   const [booking, setBooking]               = useState(initialBooking);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reviewed, setReviewed]             = useState(false);
@@ -557,141 +558,71 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
     : null;
 
   return (
-    <View style={{
-      backgroundColor: theme?.card || '#1e293b',
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: theme?.border || '#334155',
-      borderLeftWidth: 3,
-      borderLeftColor: cfg.left,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 2
-    }}>
-      {/* Next appointment ribbon */}
+    <View style={{ paddingVertical: 20 }}>
+      {/* ── "Up next" spotlight pill (web parity) ── */}
       {isNext && (
-        <View style={{ backgroundColor: '#4f46e5', paddingHorizontal: 14, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <AppText style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            Next Appointment
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, paddingLeft: 4 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#6366f1' }} />
+          <AppText style={{ fontSize: 10, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', color: '#6366f1' }}>
+            Up next
           </AppText>
           {countdown && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.85)" />
-              <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>{countdown}</AppText>
-            </View>
+            <AppText style={{ fontSize: 10, fontWeight: '600', color: theme?.subText || '#64748b' }}>{countdown}</AppText>
           )}
         </View>
       )}
 
-      <View style={{ padding: 14, gap: 12 }}>
-        {/* ── Header ── */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          {/* Salon initial avatar */}
-          <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <AppText style={{ fontSize: 22, fontWeight: '900', color: '#fff' }}>{salonInitial}</AppText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText style={{ fontSize: 15, fontWeight: '800', color: theme?.text || '#f1f5f9', letterSpacing: -0.2 }} numberOfLines={1}>
+      <View style={{ gap: 0 }}>
+        {/* ── Top row: name + status ── */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText style={{ fontSize: 18, fontWeight: '800', color: theme?.text || '#f1f5f9', letterSpacing: -0.4, marginBottom: 4 }} numberOfLines={1}>
               {salonName}
             </AppText>
-            <AppText style={{ fontSize: 13, color: theme?.subText || '#94a3b8', marginTop: 1 }} numberOfLines={1}>
+            <AppText style={{ fontSize: 13, color: theme?.subText || '#94a3b8', fontWeight: '500' }} numberOfLines={1}>
               {serviceName}
             </AppText>
-            {!!salonCity && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
-                <Ionicons name="location-outline" size={11} color={theme?.subText || '#64748b'} />
-                <AppText style={{ fontSize: 11, color: theme?.subText || '#64748b' }} numberOfLines={1}>{salonCity}</AppText>
-              </View>
-            )}
           </View>
           <StatusBadge status={status} />
         </View>
 
-        {/* ── Info grid ── */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {/* Date */}
-          <View style={{ flex: 1, backgroundColor: theme?.cardAlt || '#162032', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 }}>
-              <Ionicons name="calendar-outline" size={11} color={theme?.subText || '#64748b'} />
-              <AppText style={{ fontSize: 10, color: theme?.subText || '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Date</AppText>
-            </View>
-            <AppText style={{ fontSize: 12, fontWeight: '700', color: theme?.text || '#f1f5f9', lineHeight: 16 }}>
-              {formatDateLabel(booking.appointmentDate)}
-            </AppText>
-          </View>
-          {/* Time */}
-          <View style={{ flex: 1, backgroundColor: theme?.cardAlt || '#162032', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 3 }}>
-              <Ionicons name="time-outline" size={11} color={theme?.subText || '#64748b'} />
-              <AppText style={{ fontSize: 10, color: theme?.subText || '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Time</AppText>
-            </View>
-            <AppText style={{ fontSize: 12, fontWeight: '700', color: theme?.text || '#f1f5f9' }}>
-              {formatTimeLabel(booking.appointmentTime)}
-            </AppText>
-          </View>
-          {/* Amount */}
-          <View style={{ flex: 1, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(99,102,241,0.18)' }}>
-            <AppText style={{ fontSize: 10, color: '#818cf8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Amount</AppText>
-            <AppText style={{ fontSize: 12, fontWeight: '800', color: '#818cf8' }}>
-              {booking.totalAmount != null ? `₹${booking.totalAmount}` : '—'}
-            </AppText>
-          </View>
-        </View>
-
-        {/* ── Secondary info row ── */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-          {durLabel && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="hourglass-outline" size={12} color={theme?.subText || '#64748b'} />
-              <AppText style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>{durLabel}</AppText>
-            </View>
-          )}
-          {distanceLabel && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="location-outline" size={12} color={theme?.subText || '#64748b'} />
-              <AppText style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>{distanceLabel}</AppText>
-            </View>
-          )}
-          {booking.paymentMethod && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="card-outline" size={12} color={theme?.subText || '#64748b'} />
-              <AppText style={{ fontSize: 12, color: theme?.subText || '#64748b' }}>
-                {booking.paymentMethod.charAt(0).toUpperCase() + booking.paymentMethod.slice(1)}
+        {/* ── Meta row: date · time · amount · duration · distance · city ── */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+          {[
+            formatDateLabel(booking.appointmentDate),
+            formatTimeLabel(booking.appointmentTime),
+            booking.totalAmount != null ? `₹${booking.totalAmount}` : null,
+            durLabel,
+            distanceLabel,
+            salonCity || null,
+          ].filter(Boolean).map((item, i, arr) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AppText style={{ fontSize: 12, color: i === 2 ? '#6366f1' : (theme?.subText || '#64748b'), fontWeight: i === 2 ? '700' : '500' }}>
+                {item}
               </AppText>
-              {booking.paymentStatus && (
-                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, marginLeft: 2,
-                  backgroundColor: booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)',
-                  borderWidth: 1, borderColor: booking.paymentStatus === 'paid' ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.3)'
-                }}>
-                  <AppText style={{ fontSize: 10, fontWeight: '700', color: booking.paymentStatus === 'paid' ? '#34d399' : '#d97706' }}>
-                    {booking.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                  </AppText>
-                </View>
+              {i < arr.length - 1 && (
+                <AppText style={{ marginHorizontal: 8, color: theme?.border || '#334155', fontSize: 14 }}>·</AppText>
               )}
             </View>
-          )}
-          <AppText style={{ marginLeft: 'auto', fontSize: 11, color: theme?.subText || '#64748b', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+          ))}
+          <AppText style={{ marginLeft: 'auto', fontSize: 10, color: theme?.subText || '#64748b', opacity: 0.6, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
             #{booking.bookingId || booking._id?.slice(-6) || '—'}
           </AppText>
         </View>
 
-        {/* ── Microcopy ── */}
+        {/* ── Status microcopy (dot + text, no box — web parity) ── */}
         {microcopy && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1,
-            backgroundColor: `${microcopy.color}18`, borderColor: `${microcopy.color}33`
-          }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: microcopy.color, flexShrink: 0 }} />
-            <AppText style={{ fontSize: 12, color: microcopy.color, fontWeight: '600', flex: 1 }}>{microcopy.text}</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+            <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: microcopy.color, flexShrink: 0 }} />
+            <AppText style={{ fontSize: 11, color: microcopy.color, fontWeight: '600' }}>{microcopy.text}</AppText>
           </View>
         )}
 
         {/* ── Tentative time badge (live queue delay) ── */}
         {isUpcoming && booking.delayMinutes > 0 && booking.tentativeTime && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1, backgroundColor: 'rgba(217,119,6,0.08)', borderColor: 'rgba(217,119,6,0.25)' }}>
+          <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, backgroundColor: 'rgba(217,119,6,0.08)', borderColor: 'rgba(217,119,6,0.25)' }}>
             <Ionicons name="time-outline" size={13} color="#d97706" />
-            <AppText style={{ fontSize: 12, color: '#d97706', fontWeight: '700' }}>
+            <AppText style={{ fontSize: 11.5, color: '#d97706', fontWeight: '700' }}>
               Tentative: {formatTimeLabel(booking.tentativeTime)} <AppText style={{ fontWeight: '500' }}>(running {booking.delayMinutes} min late)</AppText>
             </AppText>
           </View>
@@ -699,10 +630,10 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
 
         {/* ── Pay Now banner ── */}
         {booking.paymentStatus === 'pending' && booking.paymentMethod && booking.paymentMethod !== 'cash' && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-            <AppText style={{ fontSize: 12, color: '#d97706', fontWeight: '600' }}>Payment pending · ₹{booking.totalAmount}</AppText>
-            <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 5, backgroundColor: '#d97706', borderRadius: 7 }}>
-              <AppText style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>Pay Now</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(251,191,36,0.07)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)' }}>
+            <AppText style={{ fontSize: 12, color: '#fbbf24', fontWeight: '600' }}>Payment pending · ₹{booking.totalAmount}</AppText>
+            <TouchableOpacity style={{ paddingHorizontal: 11, paddingVertical: 3, backgroundColor: '#fbbf24', borderRadius: 6 }}>
+              <AppText style={{ fontSize: 11, fontWeight: '700', color: '#000' }}>Pay Now</AppText>
             </TouchableOpacity>
           </View>
         )}
@@ -710,53 +641,58 @@ function BookingCard({ booking: initialBooking, userCoords, onCancelled, theme, 
         {/* ── Review prompt ── */}
         {canReview && <ReviewPrompt bookingId={booking._id} onReviewed={() => setReviewed(true)} theme={theme} />}
         {reviewed && (
-          <View style={{ padding: 10, backgroundColor: 'rgba(52,211,153,0.1)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
-            <AppText style={{ fontSize: 12, color: '#34d399' }}>Thank you for your review!</AppText>
+          <View style={{ marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(52,211,153,0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+            <AppText style={{ fontSize: 12, color: '#34d399', fontWeight: '600' }}>Thank you for your review!</AppText>
           </View>
         )}
 
-        {/* ── Action buttons ── */}
+        {/* ── Action row: flat outline buttons (web parity) ── */}
         {(isUpcoming || !!salonPhone || !!mapsUrl || status === 'completed') && (
-          <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: theme?.border || '#334155', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
             {CHAT_OPEN_LIST.includes(status) && (
-              <TouchableOpacity onPress={() => setChatOpen(true)} activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                <Ionicons name="chatbubble-outline" size={13} color="#818cf8" />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Chat</AppText>
+              <TouchableOpacity onPress={() => setChatOpen(true)} activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: 'transparent', borderRadius: 9, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+                <Ionicons name="chatbubble-outline" size={13} color="#6366f1" />
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#6366f1' }}>Chat</AppText>
               </TouchableOpacity>
             )}
             {canReschedule && (
-              <TouchableOpacity onPress={() => setRescheduleOpen(true)} activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                <Ionicons name="calendar-outline" size={13} color="#818cf8" />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Reschedule</AppText>
-              </TouchableOpacity>
-            )}
-            {canCancel && (
-              <TouchableOpacity onPress={handleCancel} disabled={cancelling} activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(248,113,113,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', opacity: cancelling ? 0.5 : 1 }}>
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#f87171' }}>{cancelling ? '…' : 'Cancel'}</AppText>
+              <TouchableOpacity onPress={() => setRescheduleOpen(true)} activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: 'transparent', borderRadius: 9, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+                <Ionicons name="calendar-outline" size={13} color={theme?.subText || '#94a3b8'} />
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: theme?.subText || '#94a3b8' }}>Reschedule</AppText>
               </TouchableOpacity>
             )}
             {!!salonPhone && (
-              <TouchableOpacity onPress={() => Linking.openURL(`tel:${salonPhone}`)} activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(52,211,153,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' }}>
-                <Ionicons name="call-outline" size={13} color="#34d399" />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#34d399' }}>Call</AppText>
+              <TouchableOpacity onPress={() => Linking.openURL(`tel:${salonPhone}`)} activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: 'transparent', borderRadius: 9, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+                <Ionicons name="call-outline" size={13} color={theme?.subText || '#94a3b8'} />
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: theme?.subText || '#94a3b8' }}>Call</AppText>
               </TouchableOpacity>
             )}
-            {!!mapsUrl && (
-              <TouchableOpacity onPress={() => Linking.openURL(mapsUrl)} activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(96,165,250,0.07)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(96,165,250,0.2)' }}>
-                <Ionicons name="navigate-outline" size={13} color="#60a5fa" />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#60a5fa' }}>Directions</AppText>
+            {salonDoc?.location?.coordinates?.length === 2 && (
+              <TouchableOpacity activeOpacity={0.7}
+                onPress={() => {
+                  const [lng, lat] = salonDoc.location.coordinates;
+                  navigation.navigate('HomeTab', { screen: 'Map', params: { destLat: lat, destLng: lng, salonName } });
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: 'transparent', borderRadius: 9, borderWidth: 1, borderColor: theme?.border || '#334155' }}>
+                <Ionicons name="navigate-outline" size={13} color={theme?.subText || '#94a3b8'} />
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: theme?.subText || '#94a3b8' }}>Directions</AppText>
               </TouchableOpacity>
             )}
             {status === 'completed' && (
               <TouchableOpacity activeOpacity={0.8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 9, borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)' }}>
-                <Ionicons name="repeat-outline" size={13} color="#818cf8" />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: '#818cf8' }}>Rebook</AppText>
+                onPress={() => navigation.navigate('HomeTab')}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: '#6366f1', borderRadius: 9 }}>
+                <Ionicons name="repeat-outline" size={13} color="#fff" />
+                <AppText style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Rebook</AppText>
+              </TouchableOpacity>
+            )}
+            {canCancel && (
+              <TouchableOpacity onPress={handleCancel} disabled={cancelling} activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 6, backgroundColor: 'transparent', borderRadius: 9, borderWidth: 1, borderColor: theme?.border || '#334155', opacity: cancelling ? 0.4 : 0.7 }}>
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: theme?.subText || '#64748b' }}>{cancelling ? '…' : 'Cancel'}</AppText>
               </TouchableOpacity>
             )}
           </View>
@@ -838,6 +774,8 @@ export default function BookingsScreen({ navigation }) {
   const handleCancelled = (id) => {
     setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));
   };
+
+  const lastCompleted = bookings.find(b => b.status === 'completed');
 
   // ── Computed stats ──────────────────────────────────────────
   const stats = {
@@ -1053,72 +991,86 @@ export default function BookingsScreen({ navigation }) {
     </View>
   );
 
-  // ── FOOTER (Insights + CTA) ──────────────────────────────────
+  // ── FOOTER (web parity: Show more, editorial insights, CTA) ──
   const ListFooter = (
-    <View style={{ paddingHorizontal: 16, paddingBottom: 32, gap: 14 }}>
-      {/* Load more */}
-      {hasMore && (
+    <View style={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+      {/* Show more — ghost button */}
+      {!loading && hasMore && (
         <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.border }}
           onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
-          <AppText style={{ fontSize: 14, fontWeight: '700', color: '#818cf8' }}>Load More</AppText>
-          <Ionicons name="chevron-down" size={16} color="#818cf8" />
+          <AppText style={{ fontSize: 13, fontWeight: '600', color: theme.subText }}>Show more</AppText>
+          <Ionicons name="chevron-down" size={14} color={theme.subText} />
         </TouchableOpacity>
       )}
-      {!hasMore && filtered.length > PAGE_SIZE && (
-        <AppText style={{ textAlign: 'center', fontSize: 12, color: theme.subText, marginTop: 4 }}>
-          All {filtered.length} bookings shown
+      {!loading && !hasMore && filtered.length > PAGE_SIZE && (
+        <AppText style={{ textAlign: 'center', fontSize: 11, color: theme.subText, marginTop: 24, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: '600' }}>
+          All {filtered.length} bookings
         </AppText>
       )}
 
-      {/* Insights */}
-      {bookings.length > 0 && (
-        <View style={{ backgroundColor: theme.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.border, gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="trending-up-outline" size={16} color="#818cf8" />
-            <AppText style={{ fontSize: 13, fontWeight: '800', color: theme.text }}>Your Insights</AppText>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
-              <AppText style={{ fontSize: 22, fontWeight: '900', color: '#818cf8', marginBottom: 2 }}>{thisMonthVisits}</AppText>
-              <AppText style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' }}>This Month</AppText>
+      {/* Insights — minimal editorial strip (web parity) */}
+      {!loading && bookings.length > 1 && (
+        <View style={{ marginTop: 56, paddingTop: 32, borderTopWidth: 1, borderTopColor: theme.border }}>
+          <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.subText, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 24 }}>
+            Your story so far
+          </AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 32 }}>
+            <View>
+              <AppText style={{ fontSize: 36, fontWeight: '900', color: theme.text, letterSpacing: -1, marginBottom: 4 }}>{thisMonthVisits}</AppText>
+              <AppText style={{ fontSize: 12, color: theme.subText, fontWeight: '500' }}>visits this month</AppText>
             </View>
-            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
-              <Ionicons name="heart-outline" size={16} color="#f87171" style={{ marginBottom: 3 }} />
-              <AppText style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center', marginBottom: 3 }}>Fav Salon</AppText>
-              <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.text, textAlign: 'center' }} numberOfLines={2}>{favSalon || '—'}</AppText>
-            </View>
-            <View style={{ flex: 1, backgroundColor: theme.cardAlt, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border }}>
-              <Ionicons name="cut-outline" size={16} color="#60a5fa" style={{ marginBottom: 3 }} />
-              <AppText style={{ fontSize: 10, color: theme.subText, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center', marginBottom: 3 }}>Top Service</AppText>
-              <AppText style={{ fontSize: 11, fontWeight: '700', color: theme.text, textAlign: 'center' }} numberOfLines={2}>{favService || '—'}</AppText>
-            </View>
+            {favSalon && (
+              <View style={{ maxWidth: 180 }}>
+                <AppText style={{ fontSize: 18, fontWeight: '800', color: theme.text, letterSpacing: -0.3, marginBottom: 4 }} numberOfLines={2}>{favSalon}</AppText>
+                <AppText style={{ fontSize: 12, color: theme.subText, fontWeight: '500' }}>favourite salon</AppText>
+              </View>
+            )}
+            {favService && (
+              <View style={{ maxWidth: 180 }}>
+                <AppText style={{ fontSize: 18, fontWeight: '800', color: theme.text, letterSpacing: -0.3, marginBottom: 4 }} numberOfLines={2}>{favService}</AppText>
+                <AppText style={{ fontSize: 12, color: theme.subText, fontWeight: '500' }}>go-to service</AppText>
+              </View>
+            )}
           </View>
         </View>
       )}
 
-      {/* CTA */}
-      <View style={{ backgroundColor: '#1e1b4b', borderRadius: 20, padding: 22, overflow: 'hidden', position: 'relative' }}>
-        <View style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(139,92,246,0.18)' }} />
-        <AppText style={{ fontSize: 17, fontWeight: '900', color: '#fff', marginBottom: 5, letterSpacing: -0.3 }}>
-          Book your next appointment now
-        </AppText>
-        <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>
-          No waiting, no hassle — instant confirmation
-        </AppText>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}
-            style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 11 }}>
-            <AppText style={{ fontSize: 13, fontWeight: '700', color: '#4f46e5' }}>Book Now</AppText>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}
-            style={{ paddingHorizontal: 18, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
-            <AppText style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>Explore Salons</AppText>
-          </TouchableOpacity>
+      {/* Bottom CTA — editorial (web parity) */}
+      {!loading && (
+        <View style={{ marginTop: 64, borderRadius: 28, paddingVertical: 48, paddingHorizontal: 32, overflow: 'hidden', backgroundColor: isDark ? '#151a2e' : '#eef2ff' }}>
+          <View style={{ position: 'absolute', top: -60, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(99,102,241,0.14)' }} />
+          <View style={{ position: 'absolute', bottom: -40, left: -20, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(139,92,246,0.10)' }} />
+          <AppText style={{ fontSize: 11, fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 14 }}>
+            What's next?
+          </AppText>
+          <AppText style={{ fontSize: 28, fontWeight: '900', color: theme.text, letterSpacing: -0.8, lineHeight: 33, marginBottom: 10 }}>
+            Book your next{'\n'}appointment now.
+          </AppText>
+          <AppText style={{ fontSize: 14, color: theme.subText, marginBottom: 28, lineHeight: 24 }}>
+            No waiting. No hassle.{'\n'}Instant confirmation.
+          </AppText>
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <TouchableOpacity onPress={() => navigation.navigate('HomeTab')} activeOpacity={0.85}
+              style={{ paddingHorizontal: 28, paddingVertical: 13, backgroundColor: '#6366f1', borderRadius: 999, shadowColor: '#6366f1', shadowOpacity: 0.35, shadowRadius: 10, elevation: 4 }}>
+              <AppText style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Book Now</AppText>
+            </TouchableOpacity>
+            {lastCompleted && (
+              <TouchableOpacity activeOpacity={0.85}
+                onPress={() => {
+                  const sid = lastCompleted.salonId?._id || lastCompleted.salonId;
+                  if (sid) navigation.navigate('HomeTab', { screen: 'SalonDetails', params: { salonId: sid } });
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 24, paddingVertical: 13, backgroundColor: 'transparent', borderRadius: 999, borderWidth: 1.5, borderColor: theme.border }}>
+                <Ionicons name="repeat-outline" size={14} color="#6366f1" />
+                <AppText style={{ fontSize: 14, fontWeight: '600', color: '#6366f1' }}>Rebook Last Visit</AppText>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 
@@ -1131,8 +1083,8 @@ export default function BookingsScreen({ navigation }) {
         removeClippedSubviews={true}
         data={loading ? [] : visible}
         keyExtractor={item => item._id}
-        renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+        renderItem={({ item, index }) => (
+          <View style={{ marginHorizontal: 16, borderBottomWidth: index < visible.length - 1 ? 1 : 0, borderBottomColor: theme.border }}>
             <BookingCard
               booking={item}
               userCoords={userCoords}
@@ -1147,18 +1099,18 @@ export default function BookingsScreen({ navigation }) {
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
           loading ? (
-            <View style={{ paddingHorizontal: 16, gap: 12 }}>
+            <View style={{ paddingHorizontal: 16 }}>
               {[1, 2, 3].map(i => (
-                <View key={i} style={{ backgroundColor: theme.card, borderRadius: 18, padding: 16, gap: 12, borderWidth: 1, borderColor: theme.border }}>
-                  <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: theme.border }} />
-                    <View style={{ flex: 1, gap: 8 }}>
-                      <View style={{ height: 14, backgroundColor: theme.border, borderRadius: 7, width: '70%' }} />
-                      <View style={{ height: 12, backgroundColor: theme.border, borderRadius: 6, width: '45%' }} />
-                    </View>
+                <View key={i} style={{ paddingVertical: 20, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: theme.border }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <View style={{ height: 22, backgroundColor: theme.border, borderRadius: 6, width: '55%' }} />
+                    <View style={{ width: 72, height: 22, backgroundColor: theme.border, borderRadius: 99 }} />
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {[1,2,3].map(j => <View key={j} style={{ flex: 1, height: 54, backgroundColor: theme.border, borderRadius: 10 }} />)}
+                  <View style={{ height: 14, backgroundColor: theme.border, borderRadius: 6, width: '38%', marginBottom: 18 }} />
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ height: 12, backgroundColor: theme.border, borderRadius: 6, width: 80 }} />
+                    <View style={{ height: 12, backgroundColor: theme.border, borderRadius: 6, width: 60 }} />
+                    <View style={{ height: 12, backgroundColor: theme.border, borderRadius: 6, width: 50 }} />
                   </View>
                 </View>
               ))}
