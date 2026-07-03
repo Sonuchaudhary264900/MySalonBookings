@@ -1212,16 +1212,23 @@ export default function HomeScreen({ navigation }) {
               </ScrollView>
             )}
 
-            {/* Open Now + clear */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
-              <TouchableOpacity onPress={handleOpenNow}
+            {/* Open Now + clear — pill row, clear filters right-aligned as a proper button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 8 }}>
+              <TouchableOpacity onPress={handleOpenNow} activeOpacity={0.8}
                 style={[styles.filterChip, { backgroundColor: theme.card, borderColor: theme.border }, openNow && { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10b981' }]}>
                 <View style={[styles.openDot, { backgroundColor: openNow ? '#10b981' : theme.subText }]} />
                 <AppText style={[styles.filterChipText, { color: openNow ? '#10b981' : theme.subText }]}>Open Now</AppText>
               </TouchableOpacity>
               {hasActiveState && (
-                <TouchableOpacity onPress={clearAll} style={{ paddingHorizontal: 10, paddingVertical: 7 }}>
-                  <AppText style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>Clear filters</AppText>
+                <TouchableOpacity onPress={clearAll} activeOpacity={0.8}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 13, paddingVertical: 7, borderRadius: 999,
+                    backgroundColor: 'rgba(99,102,241,0.08)',
+                    borderWidth: 1, borderColor: 'rgba(99,102,241,0.22)',
+                  }}>
+                  <Ionicons name="close-circle" size={13} color="#818cf8" />
+                  <AppText style={{ fontSize: 12, fontWeight: '700', color: '#818cf8' }}>Clear filters</AppText>
                 </TouchableOpacity>
               )}
             </View>
