@@ -84,7 +84,6 @@ export default function SettingsScreen({ navigation }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener('blur', () => {
       setExpandedSection(null);
-      setCpStep(1); setCpOtp(''); setCpNewPw(''); setCpConfirm('');
     });
     return unsubscribe;
   }, [navigation]);

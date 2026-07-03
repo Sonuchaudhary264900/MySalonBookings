@@ -49,8 +49,6 @@ export default function ProfileScreen({ navigation }) {
     const unsubscribe = navigation.addListener('blur', () => {
       setExpandedSection(null);
       setEditing(false);
-      setCpStep(0);
-      setCpOtp(''); setCpNewPw(''); setCpConfirm('');
     });
     return unsubscribe;
   }, [navigation]);
