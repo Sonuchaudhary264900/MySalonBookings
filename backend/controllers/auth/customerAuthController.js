@@ -60,8 +60,14 @@ exports.firebaseAuth = async (req, res) => {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
       );
-      customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
-      await customer.save();
+      // Atomic $push+$slice instead of load-modify-save: two logins racing on
+      // the same customer (e.g. Firebase auto-verify firing alongside a manual
+      // submit) both loaded this doc, so a plain customer.save() threw a
+      // Mongoose VersionError on the second write.
+      await Customer.updateOne(
+        { _id: customer._id },
+        { $push: { refreshTokens: { $each: [{ token: refreshToken }], $slice: -5 } } }
+      );
       console.log('firebase-auth login:', phone.slice(0, 6) + '****');
       return res.status(200).json(
         formatSuccessResponse({ customer: customer.getPublicProfile(), token, refreshToken, isNew: false }, 'Login successful')
@@ -156,8 +162,13 @@ exports.firebaseLogin = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
 
-    customer.refreshTokens = [...(customer.refreshTokens || []).slice(-4), { token: refreshToken }];
-    await customer.save();
+    // Atomic $push+$slice avoids a Mongoose VersionError when a concurrent
+    // login (e.g. Firebase auto-verify racing a manual submit) is also
+    // writing to this customer's refreshTokens.
+    await Customer.updateOne(
+      { _id: customer._id },
+      { $push: { refreshTokens: { $each: [{ token: refreshToken }], $slice: -5 } } }
+    );
 
     res.status(200).json(
       formatSuccessResponse(
@@ -283,11 +294,17 @@ exports.refreshToken = async (req, res) => {
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
-    customer.refreshTokens = [
-      ...customer.refreshTokens.filter((rt) => rt.token !== refreshToken).slice(-4),
-      { token: newRefreshToken },
-    ];
-    await customer.save();
+    // Atomic pull-then-push avoids a Mongoose VersionError when a concurrent
+    // request (e.g. another tab/device refreshing at the same time) is also
+    // writing to this customer's refreshTokens.
+    await Customer.updateOne(
+      { _id: customer._id },
+      { $pull: { refreshTokens: { token: refreshToken } } }
+    );
+    await Customer.updateOne(
+      { _id: customer._id },
+      { $push: { refreshTokens: { $each: [{ token: newRefreshToken }], $slice: -5 } } }
+    );
 
     // Generate new access token
     const newToken = jwt.sign(

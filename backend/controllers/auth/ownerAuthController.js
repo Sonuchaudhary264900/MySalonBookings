@@ -241,8 +241,12 @@ exports.firebaseRegister = async (req, res) => {
           process.env.JWT_REFRESH_SECRET,
           { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
         );
-        existingOwner.refreshTokens.push({ token: refreshToken });
-        await existingOwner.save();
+        // Atomic $push+$slice avoids a Mongoose VersionError when two logins
+        // race on the same owner (see firebaseLogin for the full explanation).
+        await Owner.updateOne(
+          { _id: existingOwner._id },
+          { $push: { refreshTokens: { $each: [{ token: refreshToken }], $slice: -5 } } }
+        );
         setAuthCookies(res, token, refreshToken);
         return res.status(200).json(
           formatSuccessResponse(
@@ -369,11 +373,17 @@ exports.refreshToken = async (req, res) => {
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
-    owner.refreshTokens = [
-      ...owner.refreshTokens.filter((rt) => rt.token !== refreshToken).slice(-4),
-      { token: newRefreshToken },
-    ];
-    await owner.save();
+    // Atomic pull-then-push avoids a Mongoose VersionError when a concurrent
+    // request (e.g. another tab/device refreshing at the same time) is also
+    // writing to this owner's refreshTokens (see firebaseLogin for details).
+    await Owner.updateOne(
+      { _id: owner._id },
+      { $pull: { refreshTokens: { token: refreshToken } } }
+    );
+    await Owner.updateOne(
+      { _id: owner._id },
+      { $push: { refreshTokens: { $each: [{ token: newRefreshToken }], $slice: -5 } } }
+    );
 
     // Generate new access token
     const newToken = jwt.sign(
@@ -527,10 +537,19 @@ exports.firebaseLogin = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
     );
 
-    owner.refreshTokens = [...(owner.refreshTokens || []).slice(-4), { token: refreshToken }];
-    // Persist Firebase UID so future logins find the account instantly
-    if (!owner.firebaseUid) owner.firebaseUid = firebaseUid;
-    await owner.save();
+    // Atomic $push+$slice instead of load-modify-save: two logins racing on the
+    // same owner (e.g. Firebase auto-verify firing alongside a manual submit)
+    // both loaded this doc, so a plain owner.save() threw a Mongoose VersionError
+    // on the second write. $push/$slice mutate the array server-side with no
+    // version check, so concurrent logins no longer collide.
+    await Owner.updateOne(
+      { _id: owner._id },
+      {
+        $push: { refreshTokens: { $each: [{ token: refreshToken }], $slice: -5 } },
+        // Persist Firebase UID so future logins find the account instantly
+        ...(owner.firebaseUid ? {} : { $set: { firebaseUid } }),
+      }
+    );
 
     setAuthCookies(res, token, refreshToken);
     return res.status(200).json(
