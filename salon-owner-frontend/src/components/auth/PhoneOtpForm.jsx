@@ -55,6 +55,7 @@ const PhoneOtpForm = ({
   const [otp,      setOtp]      = useState(['', '', '', '', '', '']);
   const [otpTimer, setOtpTimer] = useState(0);
   const [loading,  setLoading]  = useState(false);
+  const [slowLoading, setSlowLoading] = useState(false);
   const [error,    setError]    = useState('');
 
   const otpRefs      = useRef([]);
@@ -73,6 +74,14 @@ const PhoneOtpForm = ({
     const id = setInterval(() => setOtpTimer(t => t - 1), 1000);
     return () => clearInterval(id);
   }, [otpTimer]);
+
+  // If verification takes more than a few seconds, the backend is likely
+  // cold-starting (Render free tier) — let the user know it's still working.
+  useEffect(() => {
+    if (!loading) { setSlowLoading(false); return; }
+    const id = setTimeout(() => setSlowLoading(true), 4000);
+    return () => clearTimeout(id);
+  }, [loading]);
 
   // Pre-render invisible reCAPTCHA
   useEffect(() => {
@@ -263,7 +272,7 @@ const PhoneOtpForm = ({
           </p>
 
           <button type="submit" className="pof-btn" disabled={loading || otp.join('').length < 6}>
-            {loading ? <><div className="pof-spinner" /> Verifying…</> : submitLabel}
+            {loading ? <><div className="pof-spinner" /> {slowLoading ? 'Waking up server…' : 'Verifying…'}</> : submitLabel}
           </button>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>

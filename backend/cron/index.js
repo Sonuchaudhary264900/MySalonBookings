@@ -39,11 +39,11 @@ console.log('🕐 Cron Jobs System Initialized');
 /*
 ====================================================
 KEEP-ALIVE PING
-Pings the server every 10 minutes to prevent
+Pings the server every 5 minutes to prevent
 Render free tier from sleeping
 ====================================================
 */
-cron.schedule('*/10 * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
   const url = process.env.RENDER_EXTERNAL_URL || 'https://mysalonbookings.onrender.com';
   https.get(`${url}/ping`, (res) => {
     console.log(`🏓 Keep-alive ping: ${res.statusCode}`);

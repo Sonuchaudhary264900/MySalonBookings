@@ -72,11 +72,13 @@ api.interceptors.response.use(
 
     if (!error.response) {
       // No response usually means the Render backend is cold-starting and the
-      // gateway error page lacks CORS headers — retry a couple of times before
-      // surfacing "network error" to the user.
+      // gateway error page lacks CORS headers — retry for up to ~45s (typical
+      // Render free-tier cold-start window) before surfacing an error.
       original._netRetries = (original._netRetries || 0) + 1;
-      if (original._netRetries <= 2) {
-        await new Promise(r => setTimeout(r, original._netRetries * 2000));
+      const MAX_NET_RETRIES = 8;
+      if (original._netRetries <= MAX_NET_RETRIES) {
+        const delay = Math.min(original._netRetries * 3000, 8000);
+        await new Promise(r => setTimeout(r, delay));
         return api(original);
       }
       error.message = error.code === 'ECONNABORTED'

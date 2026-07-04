@@ -449,14 +449,15 @@ const startServer = async () => {
       }, 5000);
     }
 
-    // Keep-alive ping for Render free tier
+    // Keep-alive ping for Render free tier (pings well inside the 15-min
+    // inactivity spin-down window so the service never actually sleeps)
     if (process.env.NODE_ENV === "production") {
       const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
       setInterval(() => {
         const mod = require(selfUrl.startsWith("https") ? "https" : "http");
         mod.get(`${selfUrl}/ping`, (res) => res.resume()).on("error", () => {});
-      }, 10 * 60 * 1000);
-      logger.info("✅ Keep-alive ping enabled (every 10 min)");
+      }, 5 * 60 * 1000);
+      logger.info("✅ Keep-alive ping enabled (every 5 min)");
     }
   });
 };

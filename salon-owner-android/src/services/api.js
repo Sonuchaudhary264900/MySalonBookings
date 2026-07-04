@@ -43,10 +43,12 @@ api.interceptors.response.use(
     }
 
     if (!error.response) {
-      // Render cold start — retry before surfacing a network error
+      // Render cold start — retry for up to ~45s before surfacing a network error
       original._netRetries = (original._netRetries || 0) + 1;
-      if (original._netRetries <= 2) {
-        await new Promise(r => setTimeout(r, original._netRetries * 2000));
+      const MAX_NET_RETRIES = 8;
+      if (original._netRetries <= MAX_NET_RETRIES) {
+        const delay = Math.min(original._netRetries * 3000, 8000);
+        await new Promise(r => setTimeout(r, delay));
         return api(original);
       }
       error.message = error.code === 'ECONNABORTED'
