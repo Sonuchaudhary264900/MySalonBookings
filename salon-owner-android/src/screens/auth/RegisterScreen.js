@@ -31,6 +31,7 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const otpRefs = useRef([]);
   const confirmationRef = useRef(null);
+  const handledRef = useRef(false);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -47,6 +48,43 @@ export default function RegisterScreen({ navigation }) {
     return `+91${digits}`;
   };
 
+  const friendlyOtpError = (err) => {
+    const code = err?.code || '';
+    if (code === 'auth/too-many-requests') return 'Too many attempts from this device. Please wait a while (up to a few hours) and try again.';
+    if (code === 'auth/invalid-phone-number') return 'Invalid phone number. Enter a valid 10-digit number.';
+    if (code === 'auth/quota-exceeded') return 'SMS limit reached. Please try again later.';
+    return err?.message || 'Something went wrong. Try again.';
+  };
+
+  // Register with a verified Firebase user (manual confirm, Android
+  // auto-retrieval, or session-expired rescue all funnel here).
+  const completeRegister = async (firebaseToken) => {
+    setLoading(true);
+    try {
+      // Registers the account; existing accounts (409) auto-login — same as website
+      await firebaseRegister(firebaseToken);
+      // Auth state flips — RootNavigator routes to onboarding / approval / dashboard
+    } catch (err) {
+      handledRef.current = false; // allow retry
+      Alert.alert('Registration Failed', err.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
+    } finally { setLoading(false); }
+  };
+
+  // Android instant verification — Firebase may sign in silently when the
+  // SMS arrives; confirm() would then throw [auth/session-expired].
+  useEffect(() => {
+    if (step !== 2) return;
+    const unsub = auth().onAuthStateChanged((u) => {
+      if (u && u.phoneNumber === formatPhone(phone) && !handledRef.current) {
+        handledRef.current = true;
+        u.getIdToken()
+          .then(t => completeRegister(t))
+          .catch(() => { handledRef.current = false; });
+      }
+    });
+    return unsub;
+  }, [step, phone]);
+
   const handleSendOtp = async () => {
     setPhoneError('');
     const digits = phone.replace(/\D/g, '');
@@ -57,9 +95,10 @@ export default function RegisterScreen({ navigation }) {
     try {
       const confirmation = await auth().signInWithPhoneNumber(formatPhone(phone));
       confirmationRef.current = confirmation;
+      handledRef.current = false;
       setStep(2);
     } catch (err) {
-      setPhoneError(err?.message || 'Failed to send OTP. Try again.');
+      setPhoneError(friendlyOtpError(err));
     } finally { setLoading(false); }
   };
 
@@ -69,11 +108,12 @@ export default function RegisterScreen({ navigation }) {
     try {
       const confirmation = await auth().signInWithPhoneNumber(formatPhone(phone));
       confirmationRef.current = confirmation;
+      handledRef.current = false;
       setResendTimer(60);
       setOtp(['', '', '', '', '', '']);
       setOtpError('');
     } catch (err) {
-      Alert.alert('Error', err?.message || 'Failed to resend OTP');
+      Alert.alert('Error', friendlyOtpError(err));
     } finally { setLoading(false); }
   };
 
@@ -81,6 +121,7 @@ export default function RegisterScreen({ navigation }) {
     setOtpError('');
     const code = otp.join('');
     if (code.length !== 6) { setOtpError('Enter the complete 6-digit code'); return; }
+    if (handledRef.current) return; // auto-verification already handled it
     if (!confirmationRef.current) { setOtpError('Session expired. Please resend OTP.'); return; }
     setLoading(true);
     let firebaseToken;
@@ -88,21 +129,28 @@ export default function RegisterScreen({ navigation }) {
       const result = await confirmationRef.current.confirm(code);
       firebaseToken = await result.user.getIdToken();
     } catch (err) {
-      const msg = (err?.message || '').toLowerCase();
-      setOtpError(msg.includes('invalid') || msg.includes('otp') || msg.includes('wrong-code')
-        ? 'Invalid OTP. Please check and try again.'
-        : 'OTP verification failed. Please try again.');
-      setLoading(false);
-      return;
+      // Session consumed by Android auto-verification — the user IS verified
+      const cur = auth().currentUser;
+      const errCode = err?.code || '';
+      if (cur && cur.phoneNumber === formatPhone(phone) &&
+          (errCode === 'auth/session-expired' || errCode === 'auth/code-expired' || errCode === 'auth/unknown')) {
+        firebaseToken = await cur.getIdToken();
+      } else {
+        const msg = (err?.message || '').toLowerCase();
+        if (errCode === 'auth/too-many-requests') {
+          setOtpError(friendlyOtpError(err));
+        } else {
+          setOtpError(msg.includes('invalid') || msg.includes('otp') || msg.includes('wrong-code')
+            ? 'Invalid OTP. Please check and try again.'
+            : 'OTP verification failed. Please try again.');
+        }
+        setLoading(false);
+        return;
+      }
     }
 
-    try {
-      // Registers the account; existing accounts (409) auto-login — same as website
-      await firebaseRegister(firebaseToken);
-      // Auth state flips — RootNavigator routes to onboarding / approval / dashboard
-    } catch (err) {
-      Alert.alert('Registration Failed', err.response?.data?.message || err?.message || 'Something went wrong. Please try again.');
-    } finally { setLoading(false); }
+    handledRef.current = true;
+    await completeRegister(firebaseToken);
   };
 
   const handleOtpChange = (val, idx) => {

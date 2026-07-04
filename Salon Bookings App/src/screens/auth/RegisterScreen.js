@@ -16,9 +16,17 @@ export default function RegisterScreen({ navigation, route }) {
   const [phone, setPhone]     = useState('');
   const [otp, setOtp]         = useState('');
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer]     = useState(0);
   const confirmationRef       = useRef(null);
   const firebaseTokenRef      = useRef('');
   const nameInputRef          = useRef(null);
+  const handledRef            = useRef(false);
+
+  useEffect(() => {
+    if (timer <= 0) return;
+    const id = setInterval(() => setTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [timer]);
 
   // If LoginScreen verified a brand-new number, jump straight to the name step.
   useEffect(() => {
@@ -38,18 +46,51 @@ export default function RegisterScreen({ navigation, route }) {
     return `+91${digits}`;
   };
 
+  const friendlyOtpError = (err) => {
+    const code = err?.code || '';
+    if (code === 'auth/too-many-requests') {
+      return 'Too many attempts from this device. Please wait a while (up to a few hours) and try again.';
+    }
+    if (code === 'auth/invalid-phone-number') return 'Invalid phone number. Enter a valid 10-digit number.';
+    if (code === 'auth/quota-exceeded') return 'SMS limit reached. Please try again later.';
+    return err?.message || 'Something went wrong. Try again.';
+  };
+
+  // Phone verified (manual confirm, auto-retrieval, or rescue) → name step
+  const proceedVerified = async (fbUser) => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+    firebaseTokenRef.current = await fbUser.getIdToken();
+    showSuccess('Verified! 🎉', 'Phone number confirmed');
+    setStep(3);
+    setTimeout(() => nameInputRef.current?.focus(), 300);
+  };
+
+  // Android instant verification — Firebase may sign in silently when the
+  // SMS arrives; confirm() would then throw [auth/session-expired].
+  useEffect(() => {
+    if (step !== 2) return;
+    const unsub = auth().onAuthStateChanged((u) => {
+      if (u && u.phoneNumber === normalizePhone(phone)) proceedVerified(u).catch(() => { handledRef.current = false; });
+    });
+    return unsub;
+  }, [step, phone]);
+
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length < 10) { showError('Error', 'Enter a valid 10-digit phone number'); return; }
+    if (timer > 0) return;
     setLoading(true);
     try {
       const formattedPhone = normalizePhone(phone);
       const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
       confirmationRef.current = confirmation;
+      handledRef.current = false;
       setStep(2);
+      setTimer(60);
       showSuccess('OTP Sent', `Code sent to ${formattedPhone}`);
     } catch (err) {
-      showError('Error', err?.message || 'Failed to send OTP. Try again.');
+      showError('Error', friendlyOtpError(err));
     } finally {
       setLoading(false);
     }
@@ -57,15 +98,21 @@ export default function RegisterScreen({ navigation, route }) {
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) { showError('Error', 'Enter the 6-digit OTP'); return; }
+    if (handledRef.current) return; // auto-verification already handled it
     setLoading(true);
     try {
       const result = await confirmationRef.current.confirm(otp);
-      firebaseTokenRef.current = await result.user.getIdToken();
-      showSuccess('Verified! 🎉', 'Phone number confirmed');
-      setStep(3);
-      setTimeout(() => nameInputRef.current?.focus(), 300);
+      await proceedVerified(result.user);
     } catch (err) {
-      showError('Invalid OTP', err?.message || 'Please try again.');
+      // Session consumed by Android auto-verification — user IS verified
+      const cur = auth().currentUser;
+      const code = err?.code || '';
+      if (cur && cur.phoneNumber === normalizePhone(phone) &&
+          (code === 'auth/session-expired' || code === 'auth/code-expired' || code === 'auth/unknown')) {
+        await proceedVerified(cur);
+        return;
+      }
+      showError('Invalid OTP', friendlyOtpError(err));
     } finally {
       setLoading(false);
     }
@@ -181,8 +228,18 @@ export default function RegisterScreen({ navigation, route }) {
                   : <><Ionicons name="checkmark-circle-outline" size={18} color="#fff" /><AppText style={styles.btnText}>Verify &amp; Continue</AppText></>}
               </TouchableOpacity>
 
+              <View style={{ marginTop: 14, alignItems: 'center' }}>
+                {timer > 0 ? (
+                  <AppText style={{ color: '#9ca3af', fontSize: 13 }}>Resend OTP in {timer}s</AppText>
+                ) : (
+                  <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
+                    <AppText style={styles.backLink}>Resend OTP</AppText>
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <TouchableOpacity
-                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }}
+                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; handledRef.current = false; }}
                 style={{ marginTop: 12, alignItems: 'center' }}
               >
                 <AppText style={styles.backLink}>← Change phone number</AppText>

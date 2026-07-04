@@ -17,6 +17,7 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer]     = useState(0);
   const confirmationRef       = useRef(null);
+  const handledRef            = useRef(false);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -32,6 +33,49 @@ export default function LoginScreen({ navigation }) {
     return `+91${digits}`;
   };
 
+  const friendlyOtpError = (err) => {
+    const code = err?.code || '';
+    if (code === 'auth/too-many-requests') {
+      return 'Too many attempts from this device. Please wait a while (up to a few hours) and try again.';
+    }
+    if (code === 'auth/invalid-phone-number') return 'Invalid phone number. Enter a valid 10-digit number.';
+    if (code === 'auth/quota-exceeded') return 'SMS limit reached. Please try again later.';
+    return err?.message || 'Something went wrong. Try again.';
+  };
+
+  // Complete login with an already-verified Firebase user (manual confirm,
+  // Android auto-retrieval, or session-expired rescue all funnel here).
+  const proceedWithUser = async (fbUser) => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+    setLoading(true);
+    try {
+      const idToken = await fbUser.getIdToken();
+      const res = await firebaseLogin(idToken);
+      if (res?.needsName) {
+        showSuccess('Verified! 🎉', 'Just one more step');
+        navigation.navigate('Register', { phone, firebaseToken: idToken });
+      }
+      // On success the auth state flips and the app navigates automatically
+    } catch (err) {
+      handledRef.current = false;
+      showError('Login Failed', err?.response?.data?.message || err?.message || 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Android instant verification: Firebase may auto-verify the SMS and sign
+  // in silently, which consumes the OTP session — confirm() would then throw
+  // [auth/session-expired] even for the correct code. Log in directly instead.
+  useEffect(() => {
+    if (step !== 2) return;
+    const unsub = auth().onAuthStateChanged((u) => {
+      if (u && u.phoneNumber === normalizePhone(phone)) proceedWithUser(u);
+    });
+    return unsub;
+  }, [step, phone]);
+
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length < 10) { showError('Error', 'Enter a valid 10-digit phone number'); return; }
@@ -39,11 +83,12 @@ export default function LoginScreen({ navigation }) {
     try {
       const confirmation = await auth().signInWithPhoneNumber(normalizePhone(phone));
       confirmationRef.current = confirmation;
+      handledRef.current = false;
       setStep(2);
       setTimer(60);
       showSuccess('OTP Sent', `Code sent to ${normalizePhone(phone)}`);
     } catch (err) {
-      showError('Error', err?.message || 'Failed to send OTP. Try again.');
+      showError('Error', friendlyOtpError(err));
     } finally {
       setLoading(false);
     }
@@ -51,18 +96,21 @@ export default function LoginScreen({ navigation }) {
 
   const handleVerify = async () => {
     if (otp.length !== 6) { showError('Error', 'Enter the 6-digit OTP'); return; }
+    if (handledRef.current) return; // auto-verification already handled it
     setLoading(true);
     try {
       const result = await confirmationRef.current.confirm(otp);
-      const idToken = await result.user.getIdToken();
-      const res = await firebaseLogin(idToken);
-      if (res?.needsName) {
-        // Brand-new number — send them to Register to add their name
-        showSuccess('Verified! 🎉', 'Just one more step');
-        navigation.navigate('Register', { phone, firebaseToken: idToken });
-      }
-      // On success the auth state flips and the app navigates automatically
+      await proceedWithUser(result.user);
     } catch (err) {
+      // Session already consumed by Android auto-verification — the user IS
+      // verified, so continue instead of showing a bogus "Invalid OTP".
+      const cur = auth().currentUser;
+      const code = err?.code || '';
+      if (cur && cur.phoneNumber === normalizePhone(phone) &&
+          (code === 'auth/session-expired' || code === 'auth/code-expired' || code === 'auth/unknown')) {
+        await proceedWithUser(cur);
+        return;
+      }
       showError('Invalid OTP', err?.response?.data?.message || err?.message || 'Please try again.');
     } finally {
       setLoading(false);
@@ -158,7 +206,7 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; }}
+                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; handledRef.current = false; }}
                 style={styles.linkBtn}
               >
                 <AppText style={styles.linkText}>← Change phone number</AppText>
