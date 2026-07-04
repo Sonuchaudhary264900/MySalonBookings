@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,9 +11,42 @@ import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
 
-function todayStr() {
+function todayStr(offset = 0) {
   const d = new Date();
+  d.setDate(d.getDate() + offset);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// "14:30" → "2:30 PM" — same format the customer app shows
+function fmt12(t) {
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+// Group slots like the customer booking sheet
+function groupSlots(slots) {
+  const groups = { Morning: [], Afternoon: [], Evening: [] };
+  slots.forEach(t => {
+    const h = parseInt(t.split(':')[0], 10);
+    if (h < 12) groups.Morning.push(t);
+    else if (h < 17) groups.Afternoon.push(t);
+    else groups.Evening.push(t);
+  });
+  return Object.entries(groups).filter(([, list]) => list.length > 0);
+}
+
+// Shimmer skeleton block
+function Skeleton({ w, h, r = 8, style }) {
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.4, duration: 600, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  return <Animated.View style={[{ width: w, height: h, borderRadius: r, backgroundColor: 'rgba(128,128,160,0.18)', opacity: pulse }, style]} />;
 }
 
 export default function WalkInBookingScreen() {
@@ -67,27 +100,36 @@ export default function WalkInBookingScreen() {
       .finally(() => setSlotsLoading(false));
   }, [salon?._id, selectedDate, selectedService]);
 
-  const changeDate = (days) => {
-    const d = new Date(selectedDate + 'T12:00:00');
-    d.setDate(d.getDate() + days);
-    setSelectedDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-  };
-
   const formatDisplayDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
-  const handleBook = async () => {
-    if (!customerName.trim()) { showError('Required', 'Please enter customer name'); return; }
-    if (!selectedService) { showError('Required', 'Please select a service'); return; }
-    if (!selectedTime) { showError('Required', 'Please select a time slot'); return; }
+  // Hide slots that have already passed when booking for today
+  const isPast = (t) => {
+    if (selectedDate !== todayStr()) return false;
+    const [h, m] = t.split(':').map(Number);
+    const now = new Date();
+    return h * 60 + m <= now.getHours() * 60 + now.getMinutes();
+  };
+  const visibleSlots = allSlots.filter(t => !isPast(t));
 
+  const phoneDigits = customerPhone.replace(/\D/g, '');
+  const phoneValid  = phoneDigits.length === 0 || phoneDigits.length === 10;
+  const canBook     = customerName.trim().length > 0 && !!selectedService && !!selectedTime && phoneValid;
+  const missing =
+    !customerName.trim() ? 'Enter customer name' :
+    !phoneValid          ? 'Phone must be 10 digits' :
+    !selectedService     ? 'Select a service' :
+    !selectedTime        ? 'Pick a time slot' : '';
+
+  const handleBook = async () => {
+    if (!canBook || saving) return;
     setSaving(true);
     try {
       await api.post('/owner/bookings', {
         customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
+        customerPhone: phoneDigits ? phoneDigits : '',
         serviceId: selectedService._id,
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
@@ -116,14 +158,26 @@ export default function WalkInBookingScreen() {
         </View>
         <Text style={[styles.successTitle, { color: theme.text }]}>Booking Created!</Text>
         <Text style={[styles.successSub, { color: theme.subText }]}>
-          Walk-in booking for {customerName} has been added.
+          {selectedService?.name} for {customerName} at {fmt12(selectedTime)}, {formatDisplayDate(selectedDate)}.
         </Text>
         <TouchableOpacity style={styles.newBtn} onPress={resetForm}>
           <Text style={styles.newBtnText}>New Walk-in</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={{ marginTop: 14 }} onPress={() => navigation.goBack()}>
+          <Text style={{ color: theme.subText, fontSize: 14, fontWeight: '600' }}>Done</Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  // Date quick chips: Today, Tomorrow, +2 … +6
+  const dateChips = Array.from({ length: 7 }).map((_, i) => {
+    const value = todayStr(i);
+    return {
+      value,
+      label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : formatDisplayDate(value),
+    };
+  });
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -133,103 +187,67 @@ export default function WalkInBookingScreen() {
           <View style={styles.headerRow}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={{ padding: 4, marginTop: 4 }}
+              style={{ padding: 4 }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Walk-in Booking</Text>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.headerTitle}>Walk-in Booking</Text>
+              <Text style={styles.headerSub}>Add a booking for a walk-in customer</Text>
+            </View>
           </View>
-          <Text style={styles.headerSub}>Add a booking for a walk-in customer</Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
           {/* Customer Info */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Customer Info</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Customer</Text>
             <TextInput
-              style={[styles.input, { borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg }]}
+              style={[styles.input, { borderColor: theme.inputBorder, color: theme.text, backgroundColor: theme.input }]}
               placeholder="Customer name *"
-              placeholderTextColor={theme.subText}
+              placeholderTextColor={theme.placeholder}
               value={customerName}
               onChangeText={setCustomerName}
             />
             <TextInput
-              style={[styles.input, { borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg, marginTop: 8 }]}
+              style={[styles.input, { borderColor: !phoneValid ? '#ef4444' : theme.inputBorder, color: theme.text, backgroundColor: theme.input, marginTop: 8 }]}
               placeholder="Phone number (optional)"
-              placeholderTextColor={theme.subText}
+              placeholderTextColor={theme.placeholder}
               value={customerPhone}
-              onChangeText={setCustomerPhone}
+              onChangeText={t => setCustomerPhone(t.replace(/\D/g, '').slice(0, 10))}
               keyboardType="phone-pad"
+              maxLength={10}
             />
+            {!phoneValid && <Text style={styles.fieldError}>Enter a valid 10-digit number or leave empty</Text>}
           </View>
 
           {/* Service */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Service</Text>
             {loadingServices ? (
-              <ActivityIndicator color="#6366f1" />
+              <View style={styles.serviceGrid}>
+                {[90, 120, 100, 80, 110].map((w, i) => <Skeleton key={i} w={w} h={48} r={10} />)}
+              </View>
+            ) : services.length === 0 ? (
+              <Text style={{ color: theme.subText, fontSize: 13 }}>No services yet — add them from the Services tab first.</Text>
             ) : (
               <View style={styles.serviceGrid}>
-                {services.map((s) => (
-                  <TouchableOpacity
-                    key={s._id}
-                    style={[styles.serviceChip, selectedService?._id === s._id && styles.serviceChipActive, { borderColor: theme.border || '#e5e7eb' }]}
-                    onPress={() => setSelectedService(s)}
-                  >
-                    <Text style={[styles.serviceChipText, { color: selectedService?._id === s._id ? '#fff' : theme.text }]}>
-                      {s.name}
-                    </Text>
-                    <Text style={[styles.servicePrice, { color: selectedService?._id === s._id ? '#c7d2fe' : theme.subText }]}>
-                      ₹{s.basePrice}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Date */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
-            <View style={styles.datePicker}>
-              <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(-1)}>
-                <Ionicons name="chevron-back" size={22} color="#6366f1" />
-              </TouchableOpacity>
-              <Text style={[styles.dateText, { color: theme.text }]}>{formatDisplayDate(selectedDate)}</Text>
-              <TouchableOpacity style={styles.dateArrow} onPress={() => changeDate(1)}>
-                <Ionicons name="chevron-forward" size={22} color="#6366f1" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Time Slot */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Slot</Text>
-            {slotsLoading ? (
-              <ActivityIndicator color="#6366f1" style={{ marginVertical: 8 }} />
-            ) : allSlots.length === 0 ? (
-              <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 8 }}>
-                No slots for this date
-              </Text>
-            ) : (
-              <View style={styles.slotGrid}>
-                {allSlots.map((t) => {
-                  const booked = bookedSlots.includes(t);
-                  const active = selectedTime === t;
+                {services.map((s) => {
+                  const active = selectedService?._id === s._id;
                   return (
                     <TouchableOpacity
-                      key={t}
-                      disabled={booked}
-                      style={[
-                        styles.slot,
-                        booked  ? styles.slotBooked  :
-                        active  ? styles.slotActive  : null,
-                        { borderColor: booked ? '#fca5a5' : active ? '#6366f1' : (theme.border || '#e5e7eb') },
-                      ]}
-                      onPress={() => !booked && setSelectedTime(t)}
+                      key={s._id}
+                      style={[styles.serviceChip, { borderColor: theme.inputBorder, backgroundColor: theme.input }, active && styles.serviceChipActive]}
+                      onPress={() => setSelectedService(active ? null : s)}
+                      activeOpacity={0.8}
                     >
-                      <Text style={[styles.slotText, { color: booked ? '#ef4444' : active ? '#fff' : theme.text, textDecorationLine: booked ? 'line-through' : 'none' }]}>{t}</Text>
+                      <Text style={[styles.serviceChipText, { color: active ? '#fff' : theme.text }]}>
+                        {s.name}
+                      </Text>
+                      <Text style={[styles.servicePrice, { color: active ? '#c7d2fe' : theme.subText }]}>
+                        ₹{s.basePrice} · {s.duration || 30} min
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -237,13 +255,75 @@ export default function WalkInBookingScreen() {
             )}
           </View>
 
+          {/* Date — quick chips like the customer app */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Date</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {dateChips.map(c => {
+                const active = selectedDate === c.value;
+                return (
+                  <TouchableOpacity
+                    key={c.value}
+                    style={[styles.dateChip, { borderColor: theme.inputBorder, backgroundColor: theme.input }, active && styles.dateChipActive]}
+                    onPress={() => setSelectedDate(c.value)}
+                  >
+                    <Text style={[styles.dateChipText, { color: active ? '#fff' : theme.text }]}>{c.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Time Slot — grouped Morning / Afternoon / Evening with AM/PM labels */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Slot</Text>
+            {slotsLoading ? (
+              <View style={styles.slotGrid}>
+                {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} w={82} h={36} r={8} />)}
+              </View>
+            ) : visibleSlots.length === 0 ? (
+              <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 8 }}>
+                {selectedDate === todayStr() ? 'No more slots today — try tomorrow' : 'No slots for this date'}
+              </Text>
+            ) : (
+              groupSlots(visibleSlots).map(([label, slots]) => (
+                <View key={label} style={{ marginBottom: 6 }}>
+                  <Text style={[styles.slotGroupLabel, { color: theme.subText }]}>{label.toUpperCase()}</Text>
+                  <View style={styles.slotGrid}>
+                    {slots.map((t) => {
+                      const booked = bookedSlots.includes(t);
+                      const active = selectedTime === t;
+                      return (
+                        <TouchableOpacity
+                          key={t}
+                          disabled={booked}
+                          style={[
+                            styles.slot,
+                            { borderColor: theme.inputBorder, backgroundColor: theme.input },
+                            active && styles.slotActive,
+                            booked && styles.slotBooked,
+                          ]}
+                          onPress={() => setSelectedTime(active ? '' : t)}
+                        >
+                          <Text style={[styles.slotText, { color: booked ? '#ef4444' : active ? '#fff' : theme.text, textDecorationLine: booked ? 'line-through' : 'none' }]}>
+                            {fmt12(t)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
           {/* Notes */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Notes (optional)</Text>
             <TextInput
-              style={[styles.input, styles.notesInput, { borderColor: theme.border || '#e5e7eb', color: theme.text, backgroundColor: theme.bg }]}
+              style={[styles.input, styles.notesInput, { borderColor: theme.inputBorder, color: theme.text, backgroundColor: theme.input }]}
               placeholder="Any special requests..."
-              placeholderTextColor={theme.subText}
+              placeholderTextColor={theme.placeholder}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -253,16 +333,21 @@ export default function WalkInBookingScreen() {
         </ScrollView>
 
         {/* Book Button */}
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16, backgroundColor: theme.card, borderTopColor: theme.border || '#e5e7eb' }]}>
-          {selectedService && (
-            <Text style={[styles.pricePreview, { color: theme.subText }]}>
-              {selectedService.name} · ₹{selectedService.basePrice} · {selectedService.duration} min
-            </Text>
-          )}
-          <TouchableOpacity style={styles.bookBtn} onPress={handleBook} disabled={saving}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 16, backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <Text style={[styles.pricePreview, { color: theme.subText }]}>
+            {selectedService
+              ? `${selectedService.name} · ₹${selectedService.basePrice} · ${selectedService.duration || 30} min${selectedTime ? ` · ${fmt12(selectedTime)}` : ''}`
+              : missing}
+          </Text>
+          <TouchableOpacity
+            style={[styles.bookBtn, (!canBook || saving) && { opacity: 0.5 }]}
+            onPress={handleBook}
+            disabled={!canBook || saving}
+            activeOpacity={0.85}
+          >
             {saving
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.bookBtnText}>Create Walk-in Booking</Text>}
+              : <Text style={styles.bookBtnText}>{canBook ? 'Create Walk-in Booking' : missing}</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -272,25 +357,27 @@ export default function WalkInBookingScreen() {
 
 const styles = StyleSheet.create({
   header: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingBottom: 14 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#c7d2fe', marginTop: 2 },
-  section: { borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 12, color: '#c7d2fe', marginTop: 1 },
+  section: { borderRadius: 14, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
   sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
-  datePicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 4 },
-  dateArrow: { padding: 8 },
-  dateText: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600' },
+  input: { borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
+  fieldError: { color: '#ef4444', fontSize: 11, marginTop: 4 },
   notesInput: { minHeight: 80 },
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  serviceChip: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' },
+  serviceChip: { borderWidth: 1.5, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' },
   serviceChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   serviceChipText: { fontSize: 13, fontWeight: '600' },
   servicePrice: { fontSize: 11, marginTop: 2 },
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
+  dateChip: { borderWidth: 1.5, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16 },
+  dateChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  dateChipText: { fontSize: 13, fontWeight: '600' },
+  slotGroupLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  slot: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
   slotActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-  slotBooked: { backgroundColor: '#fef2f2' },
+  slotBooked: { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)' },
   slotText: { fontSize: 13, fontWeight: '600' },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 12 },
   pricePreview: { fontSize: 13, textAlign: 'center', marginBottom: 8 },

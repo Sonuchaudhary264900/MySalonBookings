@@ -77,28 +77,30 @@ export const DrawerContext = createContext({ openDrawer: () => {}, closeDrawer: 
 // from there, so nothing is duplicated across the two nav surfaces.
 const NAV_SECTIONS = [
   {
-    label: 'Main',
+    label: 'Operations',
     items: [
-      { name: 'Bookings',  label: 'Bookings',   icon: 'calendar-outline',  iconFocused: 'calendar' },
-      { name: 'Queue',     label: 'Live Queue', icon: 'list-outline',      iconFocused: 'list' },
-      { name: 'Customers', label: 'Customers',  icon: 'people-outline',    iconFocused: 'people' },
-      { name: 'Team',      label: 'Team',       icon: 'people-circle-outline', iconFocused: 'people-circle' },
+      { name: 'Bookings',  label: 'Bookings',        icon: 'calendar-outline',  iconFocused: 'calendar' },
+      { name: 'WalkIn',    label: 'Add Walk-In',     icon: 'person-add-outline', iconFocused: 'person-add' },
+      { name: 'Queue',     label: 'Live Queue',      icon: 'list-outline',      iconFocused: 'list' },
+      { name: 'Calendar',  label: 'Calendar',        icon: 'today-outline',     iconFocused: 'today' },
     ],
   },
   {
-    label: 'Content',
+    label: 'My Business',
     items: [
       { name: 'GlowLoox',  label: 'GlowLoox Profile', icon: 'storefront-outline', iconFocused: 'storefront' },
-      { name: 'Gallery',   label: 'Gallery',         icon: 'images-outline',   iconFocused: 'images'   },
+      { name: 'Customers', label: 'Customers',        icon: 'people-outline',    iconFocused: 'people' },
+      { name: 'Team',      label: 'Team',             icon: 'people-circle-outline', iconFocused: 'people-circle' },
+      { name: 'Gallery',   label: 'Gallery',          icon: 'images-outline',   iconFocused: 'images'   },
       { name: 'Reviews',   label: 'Reviews',          icon: 'star-outline',     iconFocused: 'star'     },
-      { name: 'Coupons',   label: 'Coupons',         icon: 'pricetag-outline', iconFocused: 'pricetag' },
-      { name: 'Packages',  label: 'Packages & Plans', icon: 'gift-outline',     iconFocused: 'gift'     },
     ],
   },
   {
-    label: 'Account',
+    label: 'Grow',
     items: [
-      { name: 'Feedback',   label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
+      { name: 'Coupons',   label: 'Coupons',          icon: 'pricetag-outline', iconFocused: 'pricetag' },
+      { name: 'Packages',  label: 'Packages & Plans', icon: 'gift-outline',     iconFocused: 'gift'     },
+      { name: 'Feedback',  label: 'Help & Feedback',  icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
       // ── Hidden for MVP (cash-only / advanced tooling) — screens still registered ──
       // { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
       // { name: 'Promotions', label: 'Promote Salon',   icon: 'megaphone-outline', iconFocused: 'megaphone' },
@@ -203,19 +205,8 @@ function CustomDrawer({ navigation }) {
       style={dStyles.container}
       showsVerticalScrollIndicator={false}
     >
-      {/* Brand header */}
-      <View style={[dStyles.brand, { paddingTop: insets.top + 18 }]}>
-        <View style={dStyles.brandIcon}>
-          <Ionicons name="sparkles" size={18} color="#fff" />
-        </View>
-        <View>
-          <Text style={dStyles.brandName}>GlowLoox</Text>
-          <Text style={dStyles.brandSub}>Owner Panel</Text>
-        </View>
-      </View>
-
-      {/* User card */}
-      <View style={dStyles.userCard}>
+      {/* User card — drawer header */}
+      <View style={[dStyles.userCard, { paddingTop: insets.top + 18 }]}>
         {user?.profilePhoto ? (
           <Image source={{ uri: user.profilePhoto }} style={dStyles.avatarImg} />
         ) : (
@@ -272,7 +263,6 @@ function CustomDrawer({ navigation }) {
           <Ionicons name="log-out-outline" size={17} color="#f87171" />
           <Text style={dStyles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
-        <Text style={dStyles.version}>GlowLoox · Owner App v1.0</Text>
       </View>
     </ScrollView>
   );
@@ -350,7 +340,7 @@ function MainDrawer({ navigation }) {
     >
       {/* Uniform bottom safe area for every stack screen; MainTabs' tab bar
           and the full-bleed GlowLoox screen handle their own insets */}
-      <MainStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background, paddingBottom: insets.bottom } }}>
+      <MainStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg, paddingBottom: insets.bottom } }}>
         <MainStack.Screen name="MainTabs"      component={MainTabs}              options={{ contentStyle: { paddingBottom: 0 } }} />
         <MainStack.Screen name="GlowLoox"      component={GlowLooxProfileScreen} options={{ contentStyle: { backgroundColor: '#0D0520', paddingBottom: 0 } }} />
         <MainStack.Screen name="Bookings"      component={BookingsScreen} />

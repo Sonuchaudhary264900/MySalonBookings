@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Switch, Image, Linking,
+  LayoutAnimation,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,9 +27,13 @@ function Section({ title, subtitle, icon, iconBg, iconColor, children, defaultOp
   const [open, setOpen] = useState(defaultOpen);
   const { theme } = useTheme();
   useEffect(() => { if (resetKey) setOpen(false); }, [resetKey]);
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+    setOpen((o) => !o);
+  };
   return (
     <View style={[sStyles.wrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      <TouchableOpacity style={sStyles.header} onPress={() => setOpen((o) => !o)} activeOpacity={0.8}>
+      <TouchableOpacity style={sStyles.header} onPress={toggle} activeOpacity={0.8}>
         <View style={sStyles.headerLeft}>
           <View style={[sStyles.iconCircle, { backgroundColor: theme.bg }]}>
             <Ionicons name={icon} size={18} color={iconColor || theme.accent} />
@@ -71,6 +76,7 @@ function SaveButton({ onPress, loading, label = 'Save Changes' }) {
 
 // ── 1. Business Information ──────────────────────────────────────────
 function SalonInfoSection({ salon, onSaved }) {
+  const { theme } = useTheme();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('barber');
@@ -114,11 +120,11 @@ function SalonInfoSection({ salon, onSaved }) {
       <Field label="Business Name *" value={name} setter={setName} placeholder="Royal Salon" />
       <Field label="Description" value={description} setter={setDescription} placeholder="About your business…" multiline />
       <View style={styles.field}>
-        <Text style={styles.label}>Category</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>Category</Text>
         <View style={styles.chipsRow}>
           {CATEGORIES.map((c) => (
-            <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
-              <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c.replace('_', ' ')}</Text>
+            <TouchableOpacity key={c} style={[styles.chip, { backgroundColor: theme.input, borderColor: theme.inputBorder }, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
+              <Text style={[styles.chipText, { color: theme.subText }, category === c && styles.chipTextActive]}>{c.replace('_', ' ')}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -241,6 +247,41 @@ function NotificationsSection() {
 
 // ── 4. App Preferences ────────────────────────────────────────────
 const APP_PREFS_KEY = '@appPrefs';
+
+// ── Appearance (dark / light) — applies instantly, no save needed ──
+function AppearanceSection() {
+  const { theme, isDark, toggleTheme } = useTheme();
+  const pick = (wantDark) => { if (wantDark !== isDark) toggleTheme(); };
+  const Card = ({ dark, icon, title, sub }) => {
+    const active = isDark === dark;
+    return (
+      <TouchableOpacity
+        style={[styles.appearanceCard, {
+          backgroundColor: active ? (isDark ? 'rgba(129,140,248,0.12)' : '#eef2ff') : theme.input,
+          borderWidth: 1.5,
+          borderColor: active ? theme.accent : theme.inputBorder,
+        }]}
+        onPress={() => pick(dark)}
+        activeOpacity={0.85}
+      >
+        <View style={[styles.appearanceIcon, { backgroundColor: active ? theme.accent : theme.bg }]}>
+          <Ionicons name={icon} size={18} color={active ? '#fff' : theme.subText} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.appearanceTitle, { color: theme.text }]}>{title}</Text>
+          <Text style={[styles.appearanceSub, { color: theme.subText }]}>{sub}</Text>
+        </View>
+        {active && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
+      </TouchableOpacity>
+    );
+  };
+  return (
+    <>
+      <Card dark={true}  icon="moon"  title="Dark"  sub="Easy on the eyes — recommended" />
+      <Card dark={false} icon="sunny" title="Light" sub="Bright and clean" />
+    </>
+  );
+}
 
 function AppPreferencesSection() {
   const { theme } = useTheme();
@@ -735,6 +776,10 @@ function SettingsSections({ salon, fetchSalon, resetKey }) {
   const { t } = useLanguage();
   return (
     <>
+      <Section resetKey={resetKey} title="Appearance" subtitle="Dark or light theme" icon="color-palette-outline" iconBg="#e0e7ff" iconColor="#6366f1" defaultOpen>
+        <AppearanceSection />
+      </Section>
+
       <Section resetKey={resetKey} title={t('salonInformation')} subtitle={t('salonInfoSub')} icon="globe-outline" iconBg="#dcfce7" iconColor="#16a34a">
         <SalonInfoSection salon={salon} onSaved={fetchSalon} />
       </Section>
