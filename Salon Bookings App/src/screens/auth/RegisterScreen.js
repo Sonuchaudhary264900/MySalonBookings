@@ -6,6 +6,7 @@ import {
 import AppText from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
+import { isAvailableAsync, showPhoneNumberHintAsync } from '../../utils/phoneNumberHint';
 import { showError, showSuccess } from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,6 +22,25 @@ export default function RegisterScreen({ navigation, route }) {
   const firebaseTokenRef      = useRef('');
   const nameInputRef          = useRef(null);
   const handledRef            = useRef(false);
+  const autoSubmittedRef      = useRef(false);
+  const hintTriedRef          = useRef(false);
+
+  // Tapping the phone field offers the on-device SIM/Google number picker
+  // (Android's Phone Number Hint) instead of forcing manual typing.
+  const handlePhoneFocus = async () => {
+    if (hintTriedRef.current || phone) return;
+    hintTriedRef.current = true;
+    try {
+      if (!(await isAvailableAsync())) return;
+      const hinted = await showPhoneNumberHintAsync();
+      if (hinted) {
+        const digits = hinted.replace(/\D/g, '');
+        setPhone(digits.length >= 10 ? digits.slice(-10) : digits);
+      }
+    } catch {
+      // Picker unavailable/dismissed — user can still type the number
+    }
+  };
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -75,6 +95,16 @@ export default function RegisterScreen({ navigation, route }) {
     });
     return unsub;
   }, [step, phone]);
+
+  // Auto-submit the instant the 6th digit lands — typed, pasted, or filled
+  // by the OS SMS/Autofill suggestion — no extra tap needed.
+  useEffect(() => {
+    if (otp.length !== 6) { autoSubmittedRef.current = false; return; }
+    if (step === 2 && !autoSubmittedRef.current && !loading) {
+      autoSubmittedRef.current = true;
+      handleVerifyOtp();
+    }
+  }, [otp, step]);
 
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
@@ -162,9 +192,13 @@ export default function RegisterScreen({ navigation, route }) {
                     placeholder="9876543210"
                     placeholderTextColor="#9ca3af"
                     keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                    importantForAutofill="yes"
                     maxLength={10}
                     value={phone}
                     onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
+                    onFocus={handlePhoneFocus}
                     editable={!loading}
                     autoFocus
                   />
@@ -208,9 +242,12 @@ export default function RegisterScreen({ navigation, route }) {
                     placeholder="• • • • • •"
                     placeholderTextColor="#9ca3af"
                     keyboardType="number-pad"
+                    autoComplete="sms-otp"
+                    textContentType="oneTimeCode"
+                    importantForAutofill="yes"
                     maxLength={6}
                     value={otp}
-                    onChangeText={setOtp}
+                    onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
                     editable={!loading}
                     autoFocus
                   />
@@ -239,7 +276,7 @@ export default function RegisterScreen({ navigation, route }) {
               </View>
 
               <TouchableOpacity
-                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; handledRef.current = false; }}
+                onPress={() => { setStep(1); setOtp(''); confirmationRef.current = null; handledRef.current = false; autoSubmittedRef.current = false; }}
                 style={{ marginTop: 12, alignItems: 'center' }}
               >
                 <AppText style={styles.backLink}>← Change phone number</AppText>

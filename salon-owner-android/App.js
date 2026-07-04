@@ -71,19 +71,18 @@ const DRAWER_WIDTH = 256;
 // Exported so DrawerMenuButton can use it without the drawer navigator
 export const DrawerContext = createContext({ openDrawer: () => {}, closeDrawer: () => {} });
 
-// ── Nav sections matching the website sidebar ─────────────────────
+// ── Nav sections matching the website sidebar ──────────────────────
+// Home, Services, Analytics (Reports), Messages and Settings already live on
+// the bottom tab bar — the drawer only lists screens that aren't reachable
+// from there, so nothing is duplicated across the two nav surfaces.
 const NAV_SECTIONS = [
   {
     label: 'Main',
     items: [
-      { name: 'Home',      label: 'Dashboard',  icon: 'grid-outline',      iconFocused: 'grid' },
       { name: 'Bookings',  label: 'Bookings',   icon: 'calendar-outline',  iconFocused: 'calendar' },
       { name: 'Queue',     label: 'Live Queue', icon: 'list-outline',      iconFocused: 'list' },
-      { name: 'Services',  label: 'Services',   icon: 'cut-outline',       iconFocused: 'cut' },
       { name: 'Customers', label: 'Customers',  icon: 'people-outline',    iconFocused: 'people' },
       { name: 'Team',      label: 'Team',       icon: 'people-circle-outline', iconFocused: 'people-circle' },
-      { name: 'Reports',   label: 'Analytics',  icon: 'bar-chart-outline',   iconFocused: 'bar-chart'   },
-      { name: 'Messages',  label: 'Messages',   icon: 'chatbubbles-outline', iconFocused: 'chatbubbles' },
     ],
   },
   {
@@ -99,7 +98,6 @@ const NAV_SECTIONS = [
   {
     label: 'Account',
     items: [
-      { name: 'Settings',   label: 'Settings',        icon: 'settings-outline', iconFocused: 'settings' },
       { name: 'Feedback',   label: 'Help & Feedback', icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
       // ── Hidden for MVP (cash-only / advanced tooling) — screens still registered ──
       // { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
@@ -168,8 +166,6 @@ function CustomDrawer({ navigation }) {
   const dStyles = getDStyles(theme, isDark);
   const { closeDrawer } = useContext(DrawerContext);
 
-  const ACTIVE_COLOR = isDark ? '#818cf8' : '#4f46e5';
-
   // Read which screen is active by traversing the root navigation state
   const activeTab = useNavigationState(state => {
     const mainRoute = state.routes.find(r => r.name === 'Main');
@@ -203,21 +199,20 @@ function CustomDrawer({ navigation }) {
 
   return (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 8 }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 8 }}
       style={dStyles.container}
+      showsVerticalScrollIndicator={false}
     >
       {/* Brand header */}
-      <View style={dStyles.brand}>
+      <View style={[dStyles.brand, { paddingTop: insets.top + 18 }]}>
         <View style={dStyles.brandIcon}>
-          <Ionicons name="storefront-outline" size={17} color="#fff" />
+          <Ionicons name="sparkles" size={18} color="#fff" />
         </View>
         <View>
-          <Text style={dStyles.brandName}>My Salon Bookings</Text>
+          <Text style={dStyles.brandName}>GlowLoox</Text>
           <Text style={dStyles.brandSub}>Owner Panel</Text>
         </View>
       </View>
-
-      <View style={dStyles.divider} />
 
       {/* User card */}
       <View style={dStyles.userCard}>
@@ -229,17 +224,15 @@ function CustomDrawer({ navigation }) {
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <Text style={dStyles.userName}>{user?.name || 'Owner'}</Text>
-          <Text style={dStyles.salonName}>{salon?.name || ''}</Text>
+          <Text style={dStyles.userName} numberOfLines={1}>{user?.name || 'Owner'}</Text>
+          <Text style={dStyles.salonName} numberOfLines={1}>{salon?.name || ''}</Text>
         </View>
       </View>
 
-      <View style={dStyles.divider} />
-
       {/* Nav sections */}
       <View style={dStyles.nav}>
-        {NAV_SECTIONS.map((section) => (
-          <View key={section.label} style={dStyles.section}>
+        {NAV_SECTIONS.map((section, idx) => (
+          <View key={section.label} style={[dStyles.section, idx > 0 && dStyles.sectionDivider]}>
             <Text style={dStyles.sectionLabel}>{section.label.toUpperCase()}</Text>
             {section.items.map((item) => {
               const focused = activeTab === item.name;
@@ -249,14 +242,15 @@ function CustomDrawer({ navigation }) {
                   key={item.name}
                   style={[dStyles.navItem, focused && dStyles.navItemActive]}
                   onPress={() => handleNavItem(item)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
-                  {focused && <View style={dStyles.activeBar} />}
-                  <Ionicons
-                    name={focused ? item.iconFocused : item.icon}
-                    size={18}
-                    color={focused ? ACTIVE_COLOR : theme.subText}
-                  />
+                  <View style={[dStyles.navIconWrap, focused && dStyles.navIconWrapActive]}>
+                    <Ionicons
+                      name={focused ? item.iconFocused : item.icon}
+                      size={16}
+                      color={focused ? '#fff' : theme.subText}
+                    />
+                  </View>
                   <Text style={[dStyles.navLabel, focused && dStyles.navLabelActive]}>
                     {item.label}
                   </Text>
@@ -274,12 +268,11 @@ function CustomDrawer({ navigation }) {
 
       {/* Logout at bottom */}
       <View style={[dStyles.footer, { marginTop: 'auto' }]}>
-        <View style={dStyles.divider} />
-        <TouchableOpacity style={dStyles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color="#f87171" />
+        <TouchableOpacity style={dStyles.logoutBtn} onPress={handleLogout} activeOpacity={0.75}>
+          <Ionicons name="log-out-outline" size={17} color="#f87171" />
           <Text style={dStyles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
-        <Text style={dStyles.version}>My Salon Bookings · Owner App v1.0</Text>
+        <Text style={dStyles.version}>GlowLoox · Owner App v1.0</Text>
       </View>
     </ScrollView>
   );
@@ -614,29 +607,50 @@ const rootStyles = StyleSheet.create({
 
 const getDStyles = (theme, isDark) => StyleSheet.create({
   container:      { flex: 1, backgroundColor: theme.card },
-  brand:          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
-  brandIcon:      { width: 34, height: 34, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
-  brandName:      { fontSize: 14, fontWeight: '800', color: theme.text },
-  brandSub:       { fontSize: 11, color: theme.subText, marginTop: 1 },
-  userCard:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-  avatar:         { width: 38, height: 38, borderRadius: 19, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
-  avatarImg:      { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: theme.border },
-  avatarInitial:  { fontSize: 16, fontWeight: '800', color: '#fff' },
-  userName:       { fontSize: 13, fontWeight: '700', color: theme.text },
-  salonName:      { fontSize: 11, color: theme.subText, marginTop: 1 },
-  divider:        { height: 1, backgroundColor: theme.border },
-  nav:            { paddingHorizontal: 8, paddingVertical: 4 },
-  section:        { marginBottom: 2 },
-  sectionLabel:   { fontSize: 10, fontWeight: '700', color: theme.subText, letterSpacing: 1.2, paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4 },
-  navItem:        { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, marginBottom: 1, overflow: 'hidden' },
-  navItemActive:  { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff' },
-  activeBar:      { position: 'absolute', left: 0, top: '50%', marginTop: -10, width: 3, height: 20, backgroundColor: isDark ? '#818cf8' : '#4f46e5', borderTopRightRadius: 2, borderBottomRightRadius: 2 },
-  navLabel:       { flex: 1, fontSize: 13, fontWeight: '500', color: theme.subText },
-  navLabelActive: { color: isDark ? '#818cf8' : '#4f46e5', fontWeight: '600' },
+  brand:          {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 18, paddingBottom: 18,
+  },
+  brandIcon:      {
+    width: 40, height: 40, borderRadius: 13, backgroundColor: '#6366f1',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#6366f1', shadowOpacity: isDark ? 0.5 : 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
+  },
+  brandName:      { fontSize: 17, fontWeight: '800', color: theme.text, letterSpacing: 0.2 },
+  brandSub:       { fontSize: 11.5, color: theme.subText, marginTop: 1, fontWeight: '600' },
+  userCard:       {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 14, marginBottom: 18, padding: 12, borderRadius: 16,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f8f8fc',
+    borderWidth: 1, borderColor: theme.border,
+  },
+  avatar:         {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: '#6366f1',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: isDark ? 'rgba(129,140,248,0.35)' : '#e0e7ff',
+  },
+  avatarImg:      { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: isDark ? 'rgba(129,140,248,0.35)' : '#e0e7ff' },
+  avatarInitial:  { fontSize: 17, fontWeight: '800', color: '#fff' },
+  userName:       { fontSize: 13.5, fontWeight: '700', color: theme.text },
+  salonName:      { fontSize: 11.5, color: theme.subText, marginTop: 1 },
+  nav:            { paddingHorizontal: 12 },
+  section:        { marginBottom: 4 },
+  sectionDivider: { marginTop: 8, paddingTop: 14, borderTopWidth: 1, borderTopColor: theme.border },
+  sectionLabel:   { fontSize: 10.5, fontWeight: '800', color: theme.subText, letterSpacing: 1.4, paddingHorizontal: 6, paddingBottom: 8, opacity: 0.7 },
+  navItem:        { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 8, paddingVertical: 7, borderRadius: 12, marginBottom: 2 },
+  navItemActive:  { backgroundColor: isDark ? 'rgba(99,102,241,0.16)' : '#eef2ff' },
+  navIconWrap:    { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  navIconWrapActive: { backgroundColor: isDark ? '#818cf8' : '#4f46e5' },
+  navLabel:       { flex: 1, fontSize: 13.5, fontWeight: '500', color: theme.subText },
+  navLabelActive: { color: isDark ? '#818cf8' : '#4f46e5', fontWeight: '700' },
   badge:          { backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeText:      { color: '#fff', fontSize: 10, fontWeight: '700' },
-  footer:         { paddingHorizontal: 16 },
-  logoutBtn:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
-  logoutText:     { fontSize: 14, fontWeight: '600', color: '#f87171' },
-  version:        { fontSize: 10, color: theme.subText, paddingBottom: 4 },
+  footer:         { paddingHorizontal: 14, paddingTop: 14 },
+  logoutBtn:      {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: 12, marginBottom: 10,
+    backgroundColor: isDark ? 'rgba(248,113,113,0.12)' : '#fef2f2',
+  },
+  logoutText:     { fontSize: 13.5, fontWeight: '700', color: '#f87171' },
+  version:        { fontSize: 10, color: theme.subText, textAlign: 'center', paddingBottom: 4, opacity: 0.6 },
 });

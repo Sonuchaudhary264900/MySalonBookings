@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import auth from '@react-native-firebase/auth';
+import { isAvailableAsync, showPhoneNumberHintAsync } from 'expo-phone-number-hint';
 import { useAuth } from '../../context/AuthContext';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -32,6 +33,7 @@ export default function RegisterScreen({ navigation }) {
   const otpRefs = useRef([]);
   const confirmationRef = useRef(null);
   const handledRef = useRef(false);
+  const hintTriedRef = useRef(false);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -39,6 +41,24 @@ export default function RegisterScreen({ navigation }) {
     const id = setInterval(() => setResendTimer(t => { if (t <= 1) { clearInterval(id); return 0; } return t - 1; }), 1000);
     return () => clearInterval(id);
   }, [step]);
+
+  // Tapping the phone field offers the on-device SIM/Google number picker
+  // (Android's Phone Number Hint) instead of forcing manual typing.
+  const handlePhoneFocus = async () => {
+    if (hintTriedRef.current || phone) return;
+    hintTriedRef.current = true;
+    try {
+      if (!(await isAvailableAsync())) return;
+      const hinted = await showPhoneNumberHintAsync();
+      if (hinted) {
+        const digits = hinted.replace(/\D/g, '');
+        setPhone(digits.length >= 10 ? digits.slice(-10) : digits);
+        setPhoneError('');
+      }
+    } catch {
+      // Picker unavailable/dismissed — user can still type the number
+    }
+  };
 
   const formatPhone = (raw) => {
     const digits = raw.replace(/\D/g, '');
@@ -155,8 +175,18 @@ export default function RegisterScreen({ navigation }) {
 
   const handleOtpChange = (val, idx) => {
     if (!/^\d*$/.test(val)) return;
+    if (val.length > 1) {
+      // Autofill/paste of the full code lands in one field — spread it
+      // across all six boxes instead of treating it as one digit.
+      const digits = val.slice(0, 6).split('');
+      const next = [...otp];
+      for (let i = 0; i < 6; i++) next[i] = digits[i] || '';
+      setOtp(next);
+      otpRefs.current[Math.min(digits.length, 5)]?.focus();
+      return;
+    }
     const next = [...otp];
-    next[idx] = val.slice(-1);
+    next[idx] = val;
     setOtp(next);
     if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
   };
@@ -168,6 +198,17 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const otpFilled = otp.join('').length === 6;
+  const autoSubmittedRef = useRef(false);
+
+  // Auto-submit the instant the 6th digit lands — typed, pasted, or filled
+  // by the OS SMS/Autofill suggestion — no extra tap needed.
+  useEffect(() => {
+    if (!otpFilled) { autoSubmittedRef.current = false; return; }
+    if (step === 2 && !autoSubmittedRef.current && !loading) {
+      autoSubmittedRef.current = true;
+      handleVerifyOtp();
+    }
+  }, [otpFilled, step]);
 
   return (
     <View style={styles.root}>
@@ -225,8 +266,12 @@ export default function RegisterScreen({ navigation }) {
                       placeholder="98765 43210"
                       placeholderTextColor="#4b5563"
                       keyboardType="phone-pad"
+                      autoComplete="tel"
+                      textContentType="telephoneNumber"
+                      importantForAutofill="yes"
                       value={phone}
                       onChangeText={t => { setPhone(t); setPhoneError(''); }}
+                      onFocus={handlePhoneFocus}
                       maxLength={13}
                       editable={!loading}
                     />
@@ -280,10 +325,13 @@ export default function RegisterScreen({ navigation }) {
                       onChangeText={val => handleOtpChange(val, idx)}
                       onKeyPress={e => handleOtpKeyPress(e, idx)}
                       keyboardType="number-pad"
-                      maxLength={1}
+                      maxLength={idx === 0 ? 6 : 1}
                       editable={!loading}
                       textAlign="center"
                       selectTextOnFocus
+                      autoComplete={idx === 0 ? 'sms-otp' : 'off'}
+                      textContentType={idx === 0 ? 'oneTimeCode' : 'none'}
+                      importantForAutofill={idx === 0 ? 'yes' : 'no'}
                     />
                   ))}
                 </View>

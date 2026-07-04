@@ -45,6 +45,12 @@ salon-owner-android/android/
 salon-user-android/dist/
 salon-owner-android/dist/
 
+# Real release-signing keystores/credentials — NEVER commit these
+*.keystore
+!**/debug.keystore
+keystore.properties
+**/keystore.properties
+
 # Editor directories
 .vscode/
 .idea/
