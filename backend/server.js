@@ -97,21 +97,47 @@ app.set("trust proxy", 1);
    ALLOWED ORIGINS
 ============================================================ */
 const productionOrigins  = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim()).filter(Boolean)
   : [];
 const developmentOrigins = [
   "http://localhost:5173", "http://localhost:5174",
   "http://localhost:5175", "http://localhost:5176",
   "http://localhost:5177", "http://localhost:3000", "http://localhost:3001",
 ];
-const allowedOrigins = process.env.NODE_ENV === "production"
-  ? productionOrigins
-  : [...new Set([...developmentOrigins, ...productionOrigins])];
+
+// First-party domains that must ALWAYS be allowed, regardless of the
+// ALLOWED_ORIGINS env var — a missing/incomplete env var must never lock
+// our own owner/customer/admin frontends out (this caused login CORS failures).
+const firstPartyHostRegex = /(^|\.)(mysalonbookings\.com|glowloox\.com)$/i;
+
+const staticAllowedOrigins = new Set([
+  ...productionOrigins,
+  ...(process.env.NODE_ENV === "production" ? [] : developmentOrigins),
+]);
+
+// Function-based origin check used by both Express CORS and Socket.io.
+const isOriginAllowed = (origin) => {
+  // Non-browser clients (curl, mobile apps, server-to-server) send no Origin.
+  if (!origin) return true;
+  if (staticAllowedOrigins.has(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    if (firstPartyHostRegex.test(hostname)) return true;
+    if (process.env.NODE_ENV !== "production" && hostname === "localhost") return true;
+  } catch { /* malformed origin — reject below */ }
+  return false;
+};
+
+const corsOrigin = (origin, callback) => {
+  if (isOriginAllowed(origin)) return callback(null, true);
+  logger.warn("⛔ CORS blocked origin", { origin });
+  return callback(new Error("Not allowed by CORS"));
+};
 
 /* ============================================================
    SOCKET.IO  (Redis adapter for horizontal scaling)
 ============================================================ */
-const io = socketIO(server, { cors: { origin: allowedOrigins, credentials: true } });
+const io = socketIO(server, { cors: { origin: corsOrigin, credentials: true } });
 app.set("io", io);
 
 // Redis Pub/Sub adapter — enables socket.io across multiple pods
@@ -197,7 +223,7 @@ app.use(helmet({
   xFrameOptions:  { action: "deny" },
 }));
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 /* ============================================================
    BODY PARSER + SANITIZATION
