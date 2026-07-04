@@ -9,6 +9,11 @@ const { setCSRFCookie } = require('../utils/cookies');
 const EXEMPT_PATTERNS = [
   /^\/api\/v1\/owner\/subscription\/webhook/,
   /^\/api\/v1\/staff\/auth\//,       // mobile staff login
+  // Pre-auth login/register/refresh endpoints: there is no session yet for a
+  // CSRF attacker to ride, and a stale httpOnly cookie left in a mobile app's
+  // native cookie jar from a previous install/session (which never sends
+  // x-csrf-token) would otherwise 403 every fresh login attempt.
+  /^\/api\/v1\/(customer|owner)\/auth\/(firebase-login|firebase-register|firebase-auth|refresh-token)/,
   /^\/health/,
   /^\/metrics/,
   /^\/ping/,
