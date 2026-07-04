@@ -1,518 +1,953 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+// Settings — mirrors the owner website's Settings page (mobile view):
+// same 12 sections, same order, same copy, single-open accordion.
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Switch, Image, Linking,
-  LayoutAnimation,
+  LayoutAnimation, Modal, FlatList, Appearance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications';
+import { Video, ResizeMode } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
 import { useAuth } from '../../context/AuthContext';
-import { localDate } from '../../utils/helpers';
 import { showSuccess, showError } from '../../utils/toast';
 import DrawerMenuButton from '../../components/DrawerMenuButton';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { INDIAN_STATES, STATE_DISTRICTS } from '../../data/indianLocations';
 
-const CATEGORIES = ['barber', 'hair_salon', 'spa', 'massage', 'other'];
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const NOTIF_PREFS_KEY = 'notificationPrefs';
+const APP_PREFS_KEY   = 'appPrefs';
 
-// ── Collapsible Section ───────────────────────────────────────────
-function Section({ title, subtitle, icon, iconBg, iconColor, children, defaultOpen = false, resetKey }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const { theme } = useTheme();
-  useEffect(() => { if (resetKey) setOpen(false); }, [resetKey]);
-  const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
-    setOpen((o) => !o);
-  };
+// Business-type metadata — matches website SALON_TYPES
+const SALON_TYPES = [
+  { key: 'barbershop',    label: 'Barbershop',          icon: 'cut-outline',        color: '#3b82f6', description: 'Expert cuts, shaves & beard grooming' },
+  { key: 'salon',         label: 'Salon',               icon: 'color-wand-outline', color: '#8b5cf6', description: 'Hair, beauty & grooming for everyone' },
+  { key: 'spa_wellness',  label: 'Spa & Wellness',      icon: 'water-outline',      color: '#10b981', description: 'Relaxation, massage & holistic care' },
+  { key: 'makeup_bridal', label: 'Makeup & Bridal',     icon: 'brush-outline',      color: '#ec4899', description: 'Bridal, party makeup & beauty services' },
+  { key: 'skin_derma',    label: 'Skin & Derma Clinic', icon: 'medkit-outline',     color: '#f59e0b', description: 'Advanced skin treatments & dermatology' },
+];
+const BIZ_NAME = { barbershop: 'Barbershop', salon: 'Salon', spa_wellness: 'Spa', makeup_bridal: 'Studio', skin_derma: 'Clinic' };
+
+// 24 hour options — same as web HOURS_OPTIONS
+const HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const h = i % 12 === 0 ? 12 : i % 12;
+  const ampm = i < 12 ? 'AM' : 'PM';
+  return { label: `${h}:00 ${ampm}`, value: `${String(i).padStart(2, '0')}:00` };
+});
+const hourLabel = (v) => HOURS_OPTIONS.find(o => o.value === v)?.label || v;
+
+// Direct-to-Cloudinary upload using the app's signature endpoint
+async function uploadToCloudinary(uri, resourceType = 'image') {
+  const sigRes = await api.get(`/owner/gallery/upload-signature?resource_type=${resourceType}`);
+  const { signature, timestamp, api_key, cloud_name, folder } = sigRes.data.data;
+  const formData = new FormData();
+  const ext = uri.split('.').pop()?.split('?')[0] || (resourceType === 'video' ? 'mp4' : 'jpg');
+  formData.append('file', { uri, type: resourceType === 'video' ? 'video/mp4' : 'image/jpeg', name: `upload.${ext}` });
+  formData.append('signature', signature);
+  formData.append('timestamp', String(timestamp));
+  formData.append('api_key', api_key);
+  formData.append('folder', folder);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/${resourceType}/upload`, { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
+  return data.secure_url;
+}
+
+/* ─── Accordion (single-open, like web) ────────────────────────── */
+function Accordion({ id, activeId, onToggle, icon, iconBg, iconColor, title, subtitle, children }) {
+  const { theme, isDark } = useTheme();
+  const open = activeId === id;
   return (
-    <View style={[sStyles.wrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      <TouchableOpacity style={sStyles.header} onPress={toggle} activeOpacity={0.8}>
-        <View style={sStyles.headerLeft}>
-          <View style={[sStyles.iconCircle, { backgroundColor: theme.bg }]}>
-            <Ionicons name={icon} size={18} color={iconColor || theme.accent} />
-          </View>
-          <Text style={[sStyles.title, { color: theme.text }]}>{title}</Text>
+    <View style={[a.wrap, { backgroundColor: theme.card, borderColor: open ? (isDark ? 'rgba(99,102,241,0.5)' : '#c7d2fe') : theme.border }]}>
+      <TouchableOpacity style={a.header} onPress={() => onToggle(id)} activeOpacity={0.75}>
+        <View style={[a.iconBubble, { backgroundColor: iconBg }]}>
+          <Ionicons name={icon} size={19} color={iconColor} />
         </View>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={theme.subText} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[a.title, { color: theme.text }]}>{title}</Text>
+          <Text style={[a.subtitle, { color: theme.subText }]} numberOfLines={1}>{subtitle}</Text>
+        </View>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={theme.subText} />
       </TouchableOpacity>
-      {open && <View style={[sStyles.body, { borderTopColor: theme.border }]}>{children}</View>}
+      {open && <View style={[a.body, { borderTopColor: theme.rowBorder }]}>{children}</View>}
     </View>
   );
 }
+const a = StyleSheet.create({
+  wrap:       { borderRadius: 16, borderWidth: 1, marginBottom: 10, overflow: 'hidden' },
+  header:     { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15 },
+  iconBubble: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  title:      { fontSize: 14, fontWeight: '700' },
+  subtitle:   { fontSize: 11.5, marginTop: 2 },
+  body:       { paddingHorizontal: 16, paddingBottom: 20, paddingTop: 6, borderTopWidth: 1 },
+});
 
-function Field({ label, value, setter, placeholder, keyboard = 'default', multiline = false }) {
+/* ─── Shared bits ──────────────────────────────────────────────── */
+function FieldRow({ label, value }) {
   const { theme } = useTheme();
   return (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: theme.subText }]}>{label}</Text>
-      <TextInput
-        style={[styles.input, { backgroundColor: theme.input, borderColor: theme.inputBorder, color: theme.text }, multiline && { height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
-        value={value}
-        onChangeText={setter}
-        placeholder={placeholder}
-        placeholderTextColor={theme.placeholder}
-        keyboardType={keyboard}
-        autoCapitalize="none"
-        multiline={multiline}
-      />
+    <View style={[sh.fieldRow, { borderBottomColor: theme.rowBorder }]}>
+      <Text style={[sh.fieldLabel, { color: theme.subText }]}>{label}</Text>
+      <Text style={[sh.fieldValue, { color: theme.text }]}>{value || '—'}</Text>
     </View>
   );
 }
 
-function SaveButton({ onPress, loading, label = 'Save Changes' }) {
+function LabelInput({ label, value, onChange, placeholder, keyboard = 'default', multiline, error, disabled }) {
+  const { theme } = useTheme();
   return (
-    <TouchableOpacity style={[styles.saveBtn, loading && { opacity: 0.7 }]} onPress={onPress} disabled={loading}>
-      {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>{label}</Text>}
+    <View style={{ marginBottom: 13 }}>
+      <Text style={[sh.inpLabel, { color: theme.subText }]}>{label}</Text>
+      <TextInput
+        style={[sh.inp, { backgroundColor: theme.input, borderColor: error ? '#ef4444' : theme.inputBorder, color: theme.text },
+          multiline && { height: 84, textAlignVertical: 'top', paddingTop: 10 }]}
+        value={value} onChangeText={onChange} placeholder={placeholder}
+        placeholderTextColor={theme.placeholder} keyboardType={keyboard}
+        autoCapitalize="none" multiline={!!multiline} editable={!disabled}
+      />
+      {!!error && <Text style={sh.inpError}>{error}</Text>}
+    </View>
+  );
+}
+
+function PrimaryBtn({ label, onPress, loading, icon = 'save-outline', style }) {
+  return (
+    <TouchableOpacity style={[sh.primaryBtn, loading && { opacity: 0.65 }, style]} onPress={onPress} disabled={loading} activeOpacity={0.85}>
+      {loading ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name={icon} size={16} color="#fff" />}
+      <Text style={sh.primaryBtnText}>{loading ? 'Saving…' : label}</Text>
     </TouchableOpacity>
   );
 }
 
-// ── 1. Business Information ──────────────────────────────────────────
-function SalonInfoSection({ salon, onSaved }) {
+function SaveBar({ onSave, onCancel, loading }) {
   const { theme } = useTheme();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('barber');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [stateName, setStateName] = useState('');
-  const [pincode, setPincode] = useState('');
+  return (
+    <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+      <PrimaryBtn label="Save Changes" onPress={onSave} loading={loading} style={{ flex: 1, marginTop: 0 }} />
+      <TouchableOpacity style={[sh.cancelBtn, { borderColor: theme.inputBorder }]} onPress={onCancel} disabled={loading}>
+        <Ionicons name="close" size={15} color={theme.subText} />
+        <Text style={[sh.cancelBtnText, { color: theme.subText }]}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// Modal list picker (used for state, district, hours)
+function PickerModal({ visible, title, options, value, onSelect, onClose }) {
+  const { theme } = useTheme();
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={sh.pickerOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={[sh.pickerSheet, { backgroundColor: theme.card }]}>
+          <Text style={[sh.pickerTitle, { color: theme.text }]}>{title}</Text>
+          <FlatList
+            data={options}
+            keyExtractor={(item) => String(item.value ?? item)}
+            style={{ maxHeight: 420 }}
+            renderItem={({ item }) => {
+              const val = item.value ?? item;
+              const label = item.label ?? item;
+              const active = value === val;
+              return (
+                <TouchableOpacity
+                  style={[sh.pickerRow, active && { backgroundColor: 'rgba(99,102,241,0.12)' }]}
+                  onPress={() => { onSelect(val); onClose(); }}
+                >
+                  <Text style={[sh.pickerRowText, { color: active ? '#818cf8' : theme.text }]}>{label}</Text>
+                  {active && <Ionicons name="checkmark" size={16} color="#818cf8" />}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+function SelectField({ label, value, placeholder, onPress, disabled }) {
+  const { theme } = useTheme();
+  return (
+    <View style={{ marginBottom: 13 }}>
+      {!!label && <Text style={[sh.inpLabel, { color: theme.subText }]}>{label}</Text>}
+      <TouchableOpacity
+        style={[sh.inp, sh.selectRow, { backgroundColor: theme.input, borderColor: theme.inputBorder }, disabled && { opacity: 0.5 }]}
+        onPress={onPress} disabled={disabled} activeOpacity={0.75}
+      >
+        <Text style={{ fontSize: 14, color: value ? theme.text : theme.placeholder }}>{value || placeholder}</Text>
+        <Ionicons name="chevron-down" size={15} color={theme.subText} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+/* ─── 1. My Profile ────────────────────────────────────────────── */
+function ProfileSection() {
+  const { theme } = useTheme();
+  const { user, updateProfile } = useAuth();
+  const { salon, fetchSalon } = useSalon();
+
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', phone: '' });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [accOpen, setAccOpen] = useState(false);
 
   useEffect(() => {
-    if (salon) {
-      setName(salon.name || ''); setDescription(salon.description || '');
-      setCategory(salon.category || 'barber'); setPhone(salon.phone || '');
-      setEmail(salon.email || ''); setAddress(salon.address || '');
-      setCity(salon.city || ''); setStateName(salon.state || '');
-      setPincode(salon.pincode || '');
+    if (user) setForm({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
+  }, [user]);
+
+  const typeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '—';
+
+  const handleLogoChange = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { showError('Permission denied', 'Gallery access is required'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85, allowsEditing: true, aspect: [1, 1] });
+    if (result.canceled) return;
+    setLogoUploading(true);
+    try {
+      const url = await uploadToCloudinary(result.assets[0].uri, 'image');
+      await api.put('/owner/salon/photos', { logo: url });
+      fetchSalon();
+      showSuccess('Updated', 'Profile photo updated!');
+    } catch (err) {
+      showError('Error', err.message || 'Failed to upload photo');
+    } finally { setLogoUploading(false); }
+  };
+
+  const handleSave = async () => {
+    const errs = {};
+    if (!form.name.trim()) errs.name = 'Name is required';
+    if (form.email.trim() && !/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Email is invalid';
+    if (!form.phone.trim()) errs.phone = 'Phone is required';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setLoading(true);
+    try {
+      await updateProfile({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() });
+      showSuccess('Saved', 'Profile updated!');
+      setIsEditing(false);
+    } catch (err) {
+      showError('Error', err.response?.data?.message || err.message || 'Failed to update profile');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <View>
+      {/* Avatar row */}
+      <View style={[p.avatarRow, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+        <TouchableOpacity onPress={handleLogoChange} disabled={logoUploading} activeOpacity={0.8}>
+          {salon?.logo ? (
+            <Image source={{ uri: salon.logo }} style={p.avatarImg} />
+          ) : (
+            <View style={[p.avatarFallback, { backgroundColor: 'rgba(99,102,241,0.15)' }]}>
+              <Ionicons name="person" size={24} color="#818cf8" />
+            </View>
+          )}
+          <View style={p.avatarCam}>
+            {logoUploading
+              ? <ActivityIndicator color="#fff" size={10} />
+              : <Ionicons name="camera" size={11} color="#fff" />}
+          </View>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={[p.avatarName, { color: theme.text }]}>{user?.name || '—'}</Text>
+          <Text style={[p.avatarSub, { color: theme.subText }]}>Member since {memberSince}</Text>
+          {typeDef && (
+            <View style={[p.typeChip, { backgroundColor: `${typeDef.color}15`, borderColor: `${typeDef.color}33` }]}>
+              <Text style={[p.typeChipText, { color: typeDef.color }]}>{typeDef.label}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Business type card */}
+      {typeDef && (
+        <View style={[p.typeCard, { borderColor: `${typeDef.color}40`, backgroundColor: `${typeDef.color}08` }]}>
+          <View style={[p.typeCardIcon, { backgroundColor: `${typeDef.color}18` }]}>
+            <Ionicons name={typeDef.icon} size={20} color={typeDef.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[p.typeCardKicker, { color: typeDef.color }]}>YOUR BUSINESS TYPE</Text>
+            <Text style={[p.typeCardLabel, { color: theme.text }]}>{typeDef.label}</Text>
+            <Text style={[p.typeCardDesc, { color: theme.subText }]}>{typeDef.description}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Email nudge */}
+      {!user?.email && !isEditing && (
+        <TouchableOpacity style={p.emailNudge} onPress={() => setIsEditing(true)} activeOpacity={0.8}>
+          <Ionicons name="mail-outline" size={16} color="#a78bfa" style={{ marginTop: 2 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={p.emailNudgeTitle}>Add your email address</Text>
+            <Text style={[p.emailNudgeSub, { color: theme.subText }]}>Required for booking alerts and notifications.</Text>
+          </View>
+          <View style={p.emailNudgeBadge}><Text style={p.emailNudgeBadgeText}>Add Now</Text></View>
+        </TouchableOpacity>
+      )}
+
+      {/* Profile fields / edit form */}
+      {isEditing ? (
+        <View style={[p.editCard, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+          <Text style={[p.editTitle, { color: theme.text }]}>Edit Profile</Text>
+          <LabelInput label="Full Name" value={form.name} onChange={t => { setForm(f => ({ ...f, name: t })); setErrors(e => ({ ...e, name: '' })); }} placeholder="Your name" error={errors.name} disabled={loading} />
+          <LabelInput label="Email Address (optional)" value={form.email} onChange={t => { setForm(f => ({ ...f, email: t })); setErrors(e => ({ ...e, email: '' })); }} placeholder="your@email.com" keyboard="email-address" error={errors.email} disabled={loading} />
+          <LabelInput label="Phone Number" value={form.phone} onChange={t => { setForm(f => ({ ...f, phone: t })); setErrors(e => ({ ...e, phone: '' })); }} placeholder="98765 43210" keyboard="phone-pad" error={errors.phone} disabled={loading} />
+          <SaveBar loading={loading} onSave={handleSave}
+            onCancel={() => { setIsEditing(false); setErrors({}); if (user) setForm({ name: user.name || '', email: user.email || '', phone: user.phone || '' }); }} />
+        </View>
+      ) : (
+        <View>
+          <FieldRow label="Name"  value={user?.name} />
+          <FieldRow label="Email" value={user?.email} />
+          <FieldRow label="Phone" value={user?.phone} />
+          {!!salon?.address && <FieldRow label="Address" value={salon.address} />}
+          <TouchableOpacity style={[sh.outlineBtn, { borderColor: theme.inputBorder }]} onPress={() => setIsEditing(true)}>
+            <Ionicons name="pencil-outline" size={14} color={theme.text} />
+            <Text style={[sh.outlineBtnText, { color: theme.text }]}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Security sub-section — OTP-only */}
+      <View style={[p.subCard, { borderColor: theme.rowBorder }]}>
+        <View style={p.subCardHeader}>
+          <View style={[p.subCardIcon, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+            <Ionicons name="shield-checkmark-outline" size={15} color="#10b981" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[p.subCardTitle, { color: theme.text }]}>Security</Text>
+            <Text style={[p.subCardSub, { color: theme.subText }]}>Your account is secured with phone OTP — no password needed</Text>
+          </View>
+        </View>
+        <View style={p.badgeRow}>
+          <View style={[p.secBadge, { borderColor: 'rgba(16,185,129,0.4)', backgroundColor: 'rgba(16,185,129,0.1)' }]}>
+            <Ionicons name="shield-checkmark" size={12} color="#10b981" />
+            <Text style={[p.secBadgeText, { color: '#10b981' }]}> Active & Verified</Text>
+          </View>
+          <View style={[p.secBadge, { borderColor: 'rgba(59,130,246,0.4)', backgroundColor: 'rgba(59,130,246,0.1)' }]}>
+            <Ionicons name="call" size={12} color="#3b82f6" />
+            <Text style={[p.secBadgeText, { color: '#3b82f6' }]}> Phone OTP Auth</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Account Information sub-accordion */}
+      <View style={[p.subCard, { borderColor: theme.rowBorder }]}>
+        <TouchableOpacity style={p.subCardHeader} onPress={() => { LayoutAnimation.easeInEaseOut(); setAccOpen(o => !o); }} activeOpacity={0.75}>
+          <View style={[p.subCardIcon, { backgroundColor: 'rgba(99,102,241,0.15)' }]}>
+            <Ionicons name="information-circle-outline" size={15} color="#818cf8" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[p.subCardTitle, { color: theme.text }]}>Account Information</Text>
+            <Text style={[p.subCardSub, { color: theme.subText }]}>Account type, ID and status</Text>
+          </View>
+          <Ionicons name={accOpen ? 'chevron-up' : 'chevron-down'} size={14} color={theme.subText} />
+        </TouchableOpacity>
+        {accOpen && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 6 }}>
+            {[
+              { label: 'User ID',      value: user?._id ? `${String(user._id).substring(0, 16)}…` : '—' },
+              { label: 'Account Type', value: typeDef ? `${typeDef.label} Owner` : 'Salon Owner' },
+              { label: 'Member Since', value: memberSince },
+            ].map(({ label, value }) => (
+              <View key={label} style={[p.accRow, { backgroundColor: theme.cardAlt }]}>
+                <Text style={[p.accLabel, { color: theme.subText }]}>{label}</Text>
+                <Text style={[p.accValue, { color: theme.text }]}>{value}</Text>
+              </View>
+            ))}
+            <View style={[p.accRow, { backgroundColor: theme.cardAlt }]}>
+              <Text style={[p.accLabel, { color: theme.subText }]}>Account Status</Text>
+              <View style={p.statusBadge}>
+                <Ionicons name="checkmark-circle" size={11} color="#22c55e" />
+                <Text style={p.statusBadgeText}> Active</Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const p = StyleSheet.create({
+  avatarRow:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  avatarImg:      { width: 56, height: 56, borderRadius: 28 },
+  avatarFallback: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatarCam:      { position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  avatarName:     { fontSize: 15, fontWeight: '800' },
+  avatarSub:      { fontSize: 11, marginTop: 1 },
+  typeChip:       { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, borderWidth: 1, marginTop: 5 },
+  typeChipText:   { fontSize: 10, fontWeight: '700' },
+  typeCard:       { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 2, marginBottom: 12 },
+  typeCardIcon:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  typeCardKicker: { fontSize: 9, fontWeight: '700', letterSpacing: 1 },
+  typeCardLabel:  { fontSize: 14, fontWeight: '800', marginTop: 1 },
+  typeCardDesc:   { fontSize: 11.5, marginTop: 1 },
+  emailNudge:     { flexDirection: 'row', gap: 10, padding: 13, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', backgroundColor: 'rgba(124,58,237,0.06)', marginBottom: 12 },
+  emailNudgeTitle:{ fontSize: 13, fontWeight: '700', color: '#a78bfa' },
+  emailNudgeSub:  { fontSize: 11.5, marginTop: 1 },
+  emailNudgeBadge:{ alignSelf: 'center', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: 'rgba(124,58,237,0.15)' },
+  emailNudgeBadgeText: { fontSize: 11, fontWeight: '800', color: '#a78bfa' },
+  editCard:       { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  editTitle:      { fontSize: 13, fontWeight: '700', marginBottom: 12 },
+  subCard:        { borderRadius: 14, borderWidth: 1, marginTop: 12, overflow: 'hidden' },
+  subCardHeader:  { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 13, paddingVertical: 13 },
+  subCardIcon:    { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  subCardTitle:   { fontSize: 13, fontWeight: '700' },
+  subCardSub:     { fontSize: 11, marginTop: 1 },
+  badgeRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 13, paddingBottom: 13 },
+  secBadge:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 99, borderWidth: 1 },
+  secBadgeText:   { fontSize: 11.5, fontWeight: '700' },
+  accRow:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 11, borderRadius: 10 },
+  accLabel:       { fontSize: 12.5 },
+  accValue:       { fontSize: 12.5, fontWeight: '600' },
+  statusBadge:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: 'rgba(34,197,94,0.15)' },
+  statusBadgeText:{ fontSize: 11, fontWeight: '700', color: '#22c55e' },
+});
+
+/* ─── 2. Business Information ──────────────────────────────────── */
+function BusinessInfoSection() {
+  const { theme } = useTheme();
+  const { salon, updateSalon } = useSalon();
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors]   = useState({});
+  const [form, setForm] = useState({ name: '', description: '', phone: '', email: '', address: '', city: '', district: '', state: '' });
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [pickState, setPickState]       = useState(false);
+  const [pickDistrict, setPickDistrict] = useState(false);
+
+  const typeDef = SALON_TYPES.find(t => t.key === salon?.businessType);
+  const bizName = BIZ_NAME[typeDef?.key] || 'Business';
+
+  useEffect(() => {
+    if (salon) setForm({
+      name: salon.name || '', description: salon.description || '',
+      phone: salon.phone || '', email: salon.email || '',
+      address: salon.address || '', city: salon.city || '',
+      district: salon.district || '', state: salon.state || '',
+    });
+  }, [salon]);
+
+  const coords = salon?.location?.coordinates;
+  const [lng, lat] = coords?.length === 2 ? coords : [null, null];
+  const hasCoords = lat !== null && lng !== null;
+
+  const handleSave = async () => {
+    const errs = {};
+    if (!form.name.trim())  errs.name  = `${bizName} name is required`;
+    if (!form.phone.trim()) errs.phone = 'Phone is required';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setLoading(true);
+    try {
+      await updateSalon(form);
+      showSuccess('Saved', 'Business information updated!');
+      setEditing(false);
+    } catch (err) {
+      showError('Error', err.response?.data?.message || err.message || 'Failed to update');
+    } finally { setLoading(false); }
+  };
+
+  const handleVideoUpload = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { showError('Permission denied', 'Gallery access is required'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (asset.fileSize && asset.fileSize > 100 * 1024 * 1024) { showError('Too large', 'Video must be under 100MB'); return; }
+    setVideoUploading(true);
+    try {
+      const url = await uploadToCloudinary(asset.uri, 'video');
+      await updateSalon({ videoUrl: url });
+      showSuccess('Updated', 'Business video updated!');
+    } catch (err) {
+      showError('Error', err.message || 'Video upload failed');
+    } finally { setVideoUploading(false); }
+  };
+
+  const cover = salon?.coverPhoto || salon?.photos?.[0]?.url || salon?.photos?.[0];
+
+  if (!editing) {
+    return (
+      <View>
+        {!!cover && typeof cover === 'string' && (
+          <Image source={{ uri: cover }} style={b.cover} />
+        )}
+
+        {/* Business tour video */}
+        <View style={[b.videoBlock, { borderBottomColor: theme.rowBorder }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="videocam-outline" size={15} color={theme.subText} />
+            <Text style={{ fontSize: 13, color: theme.subText }}>Business Tour Video</Text>
+          </View>
+          {salon?.videoUrl ? (
+            <Video source={{ uri: salon.videoUrl }} style={b.video} useNativeControls resizeMode={ResizeMode.CONTAIN} />
+          ) : (
+            <Text style={{ fontSize: 13, color: theme.placeholder, marginBottom: 8 }}>No video uploaded yet</Text>
+          )}
+          <TouchableOpacity style={[sh.outlineBtn, { borderColor: 'rgba(99,102,241,0.4)', marginTop: 8 }]} onPress={handleVideoUpload} disabled={videoUploading}>
+            {videoUploading ? <ActivityIndicator size="small" color="#818cf8" /> : <Ionicons name="videocam-outline" size={14} color="#818cf8" />}
+            <Text style={[sh.outlineBtnText, { color: '#818cf8' }]}>{videoUploading ? 'Uploading…' : salon?.videoUrl ? 'Replace Video' : 'Upload Video'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FieldRow label={`${bizName} Name`} value={form.name} />
+        <FieldRow label="Description" value={form.description} />
+        <FieldRow label="Phone"    value={form.phone} />
+        <FieldRow label="Email"    value={form.email} />
+        <FieldRow label="State"    value={form.state} />
+        <FieldRow label="District" value={form.district} />
+        <FieldRow label="City"     value={form.city} />
+        <FieldRow label="Locality" value={form.address} />
+
+        {/* Business type row */}
+        <View style={[sh.fieldRow, { borderBottomColor: theme.rowBorder }]}>
+          <Text style={[sh.fieldLabel, { color: theme.subText }]}>Business Type</Text>
+          {typeDef ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <Ionicons name={typeDef.icon} size={14} color={typeDef.color} />
+              <Text style={[sh.fieldValue, { color: theme.text, flex: 0 }]}>{typeDef.label}</Text>
+            </View>
+          ) : (
+            <Text style={[sh.fieldValue, { color: theme.placeholder }]}>—</Text>
+          )}
+        </View>
+
+        {/* Location */}
+        <View style={{ marginTop: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="globe-outline" size={15} color={theme.subText} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }}>Business Location</Text>
+          </View>
+          {hasCoords ? (
+            <View style={[b.mapCard, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+              <Text style={[b.coords, { color: theme.subText }]}>{lat.toFixed(5)}, {lng.toFixed(5)}</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(`https://www.google.com/maps?q=${lat},${lng}`)}>
+                <Text style={b.mapsLink}>Open in Google Maps →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[b.mapEmpty, { borderColor: theme.rowBorder, backgroundColor: theme.cardAlt }]}>
+              <Text style={{ fontSize: 13, color: theme.placeholder }}>No coordinates saved for this business</Text>
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity style={[sh.outlineBtn, { borderColor: theme.inputBorder, marginTop: 14 }]} onPress={() => setEditing(true)}>
+          <Ionicons name="pencil-outline" size={14} color={theme.text} />
+          <Text style={[sh.outlineBtnText, { color: theme.text }]}>Edit Business Info</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <LabelInput label={`${bizName} Name`} value={form.name} onChange={t => { setForm(f => ({ ...f, name: t })); setErrors(e => ({ ...e, name: '' })); }} placeholder={`Your ${bizName.toLowerCase()} name`} error={errors.name} disabled={loading} />
+      <LabelInput label="Description" value={form.description} onChange={t => setForm(f => ({ ...f, description: t }))} placeholder="Describe your business…" multiline disabled={loading} />
+
+      {typeDef && (
+        <View style={{ marginBottom: 13 }}>
+          <Text style={[sh.inpLabel, { color: theme.subText }]}>Business Type</Text>
+          <View style={[sh.inp, sh.selectRow, { backgroundColor: theme.cardAlt, borderColor: theme.inputBorder }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name={typeDef.icon} size={15} color={typeDef.color} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text }}>{typeDef.label}</Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.placeholder }}>Set during registration</Text>
+          </View>
+        </View>
+      )}
+
+      <LabelInput label="Phone" value={form.phone} onChange={t => { setForm(f => ({ ...f, phone: t })); setErrors(e => ({ ...e, phone: '' })); }} placeholder="+91 98765 43210" keyboard="phone-pad" error={errors.phone} disabled={loading} />
+      <LabelInput label="Email" value={form.email} onChange={t => setForm(f => ({ ...f, email: t }))} placeholder="business@email.com" keyboard="email-address" disabled={loading} />
+
+      <SelectField label="State" value={form.state} placeholder="Select state" onPress={() => setPickState(true)} disabled={loading} />
+      <SelectField label="District" value={form.district} placeholder={form.state ? 'Select district' : 'Select state first'} onPress={() => setPickDistrict(true)} disabled={loading || !form.state} />
+
+      <LabelInput label="City" value={form.city} onChange={t => setForm(f => ({ ...f, city: t }))} placeholder="City" disabled={loading} />
+      <LabelInput label="Locality" value={form.address} onChange={t => setForm(f => ({ ...f, address: t }))} placeholder="Area / Street address" disabled={loading} />
+
+      <SaveBar loading={loading} onSave={handleSave}
+        onCancel={() => {
+          if (salon) setForm({ name: salon.name || '', description: salon.description || '', phone: salon.phone || '', email: salon.email || '', address: salon.address || '', city: salon.city || '', district: salon.district || '', state: salon.state || '' });
+          setErrors({}); setEditing(false);
+        }} />
+
+      <PickerModal visible={pickState} title="Select State" options={INDIAN_STATES} value={form.state}
+        onSelect={v => setForm(f => ({ ...f, state: v, district: '' }))} onClose={() => setPickState(false)} />
+      <PickerModal visible={pickDistrict} title="Select District" options={STATE_DISTRICTS[form.state] || []} value={form.district}
+        onSelect={v => setForm(f => ({ ...f, district: v }))} onClose={() => setPickDistrict(false)} />
+    </View>
+  );
+}
+
+const b = StyleSheet.create({
+  cover:     { width: '100%', height: 150, borderRadius: 14, marginBottom: 12 },
+  videoBlock:{ paddingBottom: 14, borderBottomWidth: 1, marginBottom: 4 },
+  video:     { width: '100%', height: 180, borderRadius: 12, backgroundColor: '#000' },
+  mapCard:   { borderRadius: 12, borderWidth: 1, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  coords:    { fontSize: 12, fontFamily: 'monospace' },
+  mapsLink:  { fontSize: 12, fontWeight: '700', color: '#818cf8' },
+  mapEmpty:  { borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', height: 72, alignItems: 'center', justifyContent: 'center' },
+});
+
+/* ─── 3. Notifications ─────────────────────────────────────────── */
+const NOTIF_ITEMS = [
+  { name: 'emailNotifications',  label: 'Email Notifications',  desc: 'Receive booking updates via email' },
+  { name: 'smsNotifications',    label: 'SMS Notifications',    desc: 'Receive booking updates via SMS' },
+  { name: 'bookingReminders',    label: 'Booking Reminders',    desc: 'Get notified about upcoming bookings' },
+  { name: 'cancelledBookings',   label: 'Cancellation Alerts',  desc: 'Notify when a booking is cancelled' },
+  { name: 'reviewNotifications', label: 'New Reviews',          desc: 'Get notified when a customer leaves a review' },
+];
+
+function NotificationsSection() {
+  const { theme } = useTheme();
+  const [prefs, setPrefs] = useState({ emailNotifications: true, smsNotifications: true, bookingReminders: true, cancelledBookings: true, reviewNotifications: true });
+  const [permission, setPermission] = useState('undetermined');
+
+  useEffect(() => {
+    AsyncStorage.getItem(NOTIF_PREFS_KEY).then(v => { if (v) try { setPrefs(p => ({ ...p, ...JSON.parse(v) })); } catch {} });
+    Notifications.getPermissionsAsync().then(({ status }) => setPermission(status));
+  }, []);
+
+  const requestPermission = async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    setPermission(status);
+  };
+
+  const handleSave = async () => {
+    try {
+      await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
+      showSuccess('Saved', 'Notification preferences saved!');
+    } catch { showError('Error', 'Failed to save'); }
+  };
+
+  const granted = permission === 'granted';
+  const denied  = permission === 'denied';
+
+  return (
+    <View>
+      {/* Push status card */}
+      <View style={[n.pushCard, {
+        borderColor: granted ? 'rgba(34,197,94,0.4)' : denied ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)',
+        backgroundColor: granted ? 'rgba(34,197,94,0.08)' : denied ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
+      }]}>
+        <Ionicons name={granted ? 'checkmark-circle' : 'notifications-off-outline'} size={20} color={granted ? '#22c55e' : '#f59e0b'} />
+        <View style={{ flex: 1 }}>
+          <Text style={[n.pushTitle, { color: theme.text }]}>
+            {granted ? 'Push notifications enabled' : denied ? 'Push notifications blocked' : 'Enable push notifications'}
+          </Text>
+          <Text style={[n.pushSub, { color: theme.subText }]}>
+            {granted ? 'You will be alerted for new bookings.' : denied ? 'Allow in system settings to receive alerts.' : 'Tap Allow to get instant booking alerts.'}
+          </Text>
+        </View>
+        {!granted && (
+          <TouchableOpacity style={n.allowBtn} onPress={denied ? () => Linking.openSettings() : requestPermission}>
+            <Text style={n.allowBtnText}>{denied ? 'Settings' : 'Allow'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {NOTIF_ITEMS.map(item => (
+        <View key={item.name} style={[n.row, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[n.rowLabel, { color: theme.text }]}>{item.label}</Text>
+            <Text style={[n.rowDesc, { color: theme.subText }]}>{item.desc}</Text>
+          </View>
+          <Switch
+            value={prefs[item.name]}
+            onValueChange={v => setPrefs(pr => ({ ...pr, [item.name]: v }))}
+            trackColor={{ false: 'rgba(128,128,160,0.3)', true: 'rgba(99,102,241,0.6)' }}
+            thumbColor={prefs[item.name] ? '#6366f1' : '#9ca3af'}
+          />
+        </View>
+      ))}
+
+      <PrimaryBtn label="Save Preferences" onPress={handleSave} />
+    </View>
+  );
+}
+
+const n = StyleSheet.create({
+  pushCard:    { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 14, borderRadius: 14, borderWidth: 2, marginBottom: 12 },
+  pushTitle:   { fontSize: 13, fontWeight: '700' },
+  pushSub:     { fontSize: 11.5, marginTop: 1 },
+  allowBtn:    { backgroundColor: '#f59e0b', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+  allowBtnText:{ color: '#fff', fontSize: 12.5, fontWeight: '700' },
+  row:         { flexDirection: 'row', alignItems: 'center', padding: 13, borderRadius: 14, borderWidth: 1, marginBottom: 8 },
+  rowLabel:    { fontSize: 13.5, fontWeight: '600' },
+  rowDesc:     { fontSize: 11.5, marginTop: 1 },
+});
+
+/* ─── 4. App Preferences ───────────────────────────────────────── */
+function AppPreferencesSection() {
+  const { theme, isDark, toggleTheme } = useTheme();
+  const { language, setLanguage } = useLanguage();
+  const [prefs, setPrefs] = useState({ theme: isDark ? 'dark' : 'light', language: language || 'en', timeFormat: '12h', dateFormat: 'DD/MM/YYYY' });
+
+  useEffect(() => {
+    AsyncStorage.getItem(APP_PREFS_KEY).then(v => {
+      if (!v) return;
+      try {
+        const s = JSON.parse(v);
+        setPrefs(p => ({ ...p, ...s, theme: isDark ? 'dark' : 'light' }));
+      } catch {}
+    });
+  }, []);
+
+  const FIELDS = [
+    { name: 'theme',      label: 'Theme',       options: [['light', 'Light'], ['dark', 'Dark'], ['auto', 'Auto (System)']] },
+    { name: 'language',   label: 'Language',    options: [['en', 'English'], ['hi', 'हिंदी']] },
+    { name: 'timeFormat', label: 'Time Format', options: [['12h', '12 Hour (AM/PM)'], ['24h', '24 Hour']] },
+    { name: 'dateFormat', label: 'Date Format', options: [['DD/MM/YYYY', 'DD/MM/YYYY'], ['MM/DD/YYYY', 'MM/DD/YYYY'], ['YYYY-MM-DD', 'YYYY-MM-DD']] },
+  ];
+
+  const handleSave = async () => {
+    try {
+      await AsyncStorage.setItem(APP_PREFS_KEY, JSON.stringify(prefs));
+      const wantDark = prefs.theme === 'dark' || (prefs.theme === 'auto' && Appearance.getColorScheme() === 'dark');
+      if (wantDark !== isDark) toggleTheme();
+      setLanguage(prefs.language);
+      showSuccess('Saved', 'App preferences saved!');
+    } catch { showError('Error', 'Failed to save'); }
+  };
+
+  return (
+    <View>
+      {FIELDS.map(({ name, label, options }) => (
+        <View key={name} style={{ marginBottom: 13 }}>
+          <Text style={[sh.inpLabel, { color: theme.subText }]}>{label}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {options.map(([val, text]) => {
+              const active = prefs[name] === val;
+              return (
+                <TouchableOpacity key={val}
+                  style={[ap.opt, { backgroundColor: theme.input, borderColor: theme.inputBorder }, active && ap.optActive]}
+                  onPress={() => setPrefs(pr => ({ ...pr, [name]: val }))}
+                >
+                  {active && <Ionicons name="checkmark-circle" size={13} color="#818cf8" style={{ marginRight: 4 }} />}
+                  <Text style={[ap.optText, { color: active ? '#818cf8' : theme.subText }, active && { fontWeight: '700' }]}>{text}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+      <PrimaryBtn label="Save Preferences" onPress={handleSave} />
+    </View>
+  );
+}
+
+const ap = StyleSheet.create({
+  opt:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5 },
+  optActive: { borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)' },
+  optText:   { fontSize: 12.5, fontWeight: '500' },
+});
+
+/* ─── Option card (booking window / mode) ──────────────────────── */
+function OptionCard({ active, onPress, icon, label, desc }) {
+  const { theme } = useTheme();
+  return (
+    <TouchableOpacity
+      style={[oc.card, { backgroundColor: theme.cardAlt, borderColor: theme.inputBorder }, active && oc.cardActive]}
+      onPress={onPress} activeOpacity={0.8}
+    >
+      {!!icon && (
+        <View style={[oc.icon, { backgroundColor: active ? 'rgba(99,102,241,0.18)' : theme.input }]}>
+          <Ionicons name={icon} size={17} color={active ? '#818cf8' : theme.subText} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={[oc.label, { color: active ? '#818cf8' : theme.text }]}>{label}</Text>
+        <Text style={[oc.desc, { color: theme.subText }]}>{desc}</Text>
+      </View>
+      {active && <Ionicons name="checkmark-circle" size={19} color="#6366f1" />}
+    </TouchableOpacity>
+  );
+}
+const oc = StyleSheet.create({
+  card:       { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, borderRadius: 14, borderWidth: 2, marginBottom: 8 },
+  cardActive: { borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)' },
+  icon:       { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  label:      { fontSize: 13.5, fontWeight: '700' },
+  desc:       { fontSize: 11.5, marginTop: 1 },
+});
+
+/* ─── 5. Booking Window ────────────────────────────────────────── */
+const WINDOW_OPTIONS = [
+  { value: 0,  label: 'Today only',      desc: 'Customers can only book for the current day' },
+  { value: 1,  label: 'Today + Tomorrow', desc: 'Default — customers can book up to 1 day ahead' },
+  { value: 3,  label: 'Next 3 days',      desc: 'Today and 3 days in advance' },
+  { value: 7,  label: 'Next 7 days',      desc: 'Today and 7 days in advance' },
+  { value: 14, label: 'Next 14 days',     desc: 'Today and 2 weeks in advance' },
+  { value: 30, label: 'Next 30 days',     desc: 'Today and 30 days in advance' },
+];
+
+function BookingWindowSection() {
+  const { theme } = useTheme();
+  const { salon, updateSalon } = useSalon();
+  const [days, setDays] = useState(salon?.advanceBookingDays ?? 1);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { setDays(salon?.advanceBookingDays ?? 1); }, [salon?.advanceBookingDays]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateSalon({ advanceBookingDays: days });
+      showSuccess('Saved', 'Booking window updated!');
+    } catch (err) {
+      showError('Error', err.message || 'Failed to update');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>
+        Control how far in advance customers can book appointments at your business.
+      </Text>
+      {WINDOW_OPTIONS.map(opt => (
+        <OptionCard key={opt.value} active={days === opt.value} onPress={() => setDays(opt.value)} label={opt.label} desc={opt.desc} />
+      ))}
+      <PrimaryBtn label="Save Booking Window" onPress={handleSave} loading={loading} />
+    </View>
+  );
+}
+
+/* ─── 6. Booking Mode ──────────────────────────────────────────── */
+function BookingModeSection() {
+  const { theme } = useTheme();
+  const { salon, updateSalon } = useSalon();
+  const [mode, setMode] = useState(salon?.bookingMode || 'sequential');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { setMode(salon?.bookingMode || 'sequential'); }, [salon?.bookingMode]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateSalon({ bookingMode: mode });
+      showSuccess('Saved', 'Booking mode updated!');
+    } catch (err) {
+      showError('Error', err.message || 'Failed to update');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>
+        Choose how appointment slots are assigned to customers.
+      </Text>
+      <OptionCard active={mode === 'flexible'} onPress={() => setMode('flexible')} icon="calendar-outline"
+        label="Flexible (Customer Picks)" desc="Customer chooses any available time slot from all open slots." />
+      <OptionCard active={mode === 'sequential'} onPress={() => setMode('sequential')} icon="play-forward-outline"
+        label="Sequential (Next in Line)" desc="Bookings are assigned one after another. Customer gets the next open slot automatically — no gap." />
+      <PrimaryBtn label="Save Booking Mode" onPress={handleSave} loading={loading} />
+    </View>
+  );
+}
+
+/* ─── 7. Auto-Confirm ──────────────────────────────────────────── */
+function AutoConfirmSection() {
+  const { theme } = useTheme();
+  const { salon, updateSalon } = useSalon();
+  const [enabled, setEnabled] = useState(salon?.autoConfirmBookings !== false);
+  const [loading, setLoading] = useState(false);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!initialized.current && salon) {
+      setEnabled(salon.autoConfirmBookings !== false);
+      initialized.current = true;
     }
   }, [salon]);
 
   const handleSave = async () => {
-    if (!name.trim()) { showError('Error', 'Business name is required'); return; }
     setLoading(true);
     try {
-      await api.put('/owner/salon', {
-        name: name.trim(), description: description.trim(), category,
-        phone: phone.trim(), email: email.trim() || undefined,
-        address: address.trim(), city: city.trim() || undefined,
-        state: stateName.trim() || undefined, pincode: pincode.trim() || undefined,
-      });
-      onSaved();
-      showSuccess('Saved', 'Business info updated!');
+      await updateSalon({ autoConfirmBookings: enabled });
+      showSuccess('Saved', 'Auto-confirm setting saved!');
     } catch (err) {
-      showError('Error', err.message || 'Failed to update business info');
+      showError('Error', err.message || 'Failed to update');
     } finally { setLoading(false); }
   };
 
   return (
-    <>
-      <Field label="Business Name *" value={name} setter={setName} placeholder="Royal Salon" />
-      <Field label="Description" value={description} setter={setDescription} placeholder="About your business…" multiline />
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.subText }]}>Category</Text>
-        <View style={styles.chipsRow}>
-          {CATEGORIES.map((c) => (
-            <TouchableOpacity key={c} style={[styles.chip, { backgroundColor: theme.input, borderColor: theme.inputBorder }, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
-              <Text style={[styles.chipText, { color: theme.subText }, category === c && styles.chipTextActive]}>{c.replace('_', ' ')}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      <Field label="Phone *" value={phone} setter={setPhone} placeholder="+91 9876543210" keyboard="phone-pad" />
-      <Field label="Email" value={email} setter={setEmail} placeholder="business@example.com" keyboard="email-address" />
-      <Field label="Address" value={address} setter={setAddress} placeholder="Street address" />
-      <Field label="City" value={city} setter={setCity} placeholder="Mumbai" />
-      <Field label="State" value={stateName} setter={setStateName} placeholder="Maharashtra" />
-      <Field label="Pincode" value={pincode} setter={setPincode} placeholder="400001" keyboard="numeric" />
-      <SaveButton onPress={handleSave} loading={loading} />
-    </>
-  );
-}
-
-// ── 2. Working Hours ──────────────────────────────────────────────
-function WorkingHoursSection({ salon, onSaved }) {
-  const { theme } = useTheme();
-  const wh = salon?.workingHours || {};
-  const [openTime, setOpenTime] = useState(wh.openTime || '09:00');
-  const [closeTime, setCloseTime] = useState(wh.closeTime || '20:00');
-  const [lunchStart, setLunchStart] = useState(wh.lunchStart || '');
-  const [lunchEnd, setLunchEnd] = useState(wh.lunchEnd || '');
-  const [workingDays, setWorkingDays] = useState(wh.workingDays || [1, 2, 3, 4, 5, 6]);
-  const [loading, setLoading] = useState(false);
-
-  const toggleDay = (d) =>
-    setWorkingDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
-
-  const handleSave = async () => {
-    if (!openTime.match(/^\d{2}:\d{2}$/)) { showError('Error', 'Enter valid open time HH:MM'); return; }
-    if (!closeTime.match(/^\d{2}:\d{2}$/)) { showError('Error', 'Enter valid close time HH:MM'); return; }
-    setLoading(true);
-    try {
-      await api.put('/owner/salon', {
-        workingHours: { openTime, closeTime, lunchStart: lunchStart || undefined, lunchEnd: lunchEnd || undefined, workingDays },
-      });
-      onSaved();
-      showSuccess('Saved', 'Working hours updated!');
-    } catch (err) {
-      showError('Error', err.message || 'Failed to update working hours');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <>
-      <Field label="Opening Time (HH:MM)" value={openTime} setter={setOpenTime} placeholder="09:00" keyboard="numeric" />
-      <Field label="Closing Time (HH:MM)" value={closeTime} setter={setCloseTime} placeholder="20:00" keyboard="numeric" />
-      <Field label="Lunch Break Start (optional)" value={lunchStart} setter={setLunchStart} placeholder="13:00" keyboard="numeric" />
-      <Field label="Lunch Break End (optional)" value={lunchEnd} setter={setLunchEnd} placeholder="14:00" keyboard="numeric" />
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.subText }]}>Working Days</Text>
-        <View style={styles.daysRow}>
-          {DAYS.map((d, i) => (
-            <TouchableOpacity key={i} style={[styles.dayChip, { backgroundColor: theme.input, borderColor: theme.inputBorder }, workingDays.includes(i) && styles.dayChipActive]} onPress={() => toggleDay(i)}>
-              <Text style={[styles.dayChipText, { color: theme.subText }, workingDays.includes(i) && styles.dayChipTextActive]}>{d}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      <SaveButton onPress={handleSave} loading={loading} />
-    </>
-  );
-}
-
-// ── 3. Notifications Preferences ─────────────────────────────────
-const NOTIF_PREFS_KEY = '@notificationPrefs';
-const NOTIF_ITEMS = [
-  { key: 'emailNotifications', label: 'Email Notifications', sub: 'Receive booking updates via email' },
-  { key: 'smsNotifications', label: 'SMS Notifications', sub: 'Receive booking updates via SMS' },
-  { key: 'bookingReminders', label: 'Booking Reminders', sub: 'Get notified about upcoming bookings' },
-  { key: 'cancellationAlerts', label: 'Cancellation Alerts', sub: 'Notify when a booking is cancelled' },
-  { key: 'newReviews', label: 'New Reviews', sub: 'Get notified when a customer leaves a review' },
-];
-const DEFAULT_NOTIF = { emailNotifications: true, smsNotifications: true, bookingReminders: true, cancellationAlerts: true, newReviews: true };
-
-function NotificationsSection() {
-  const { theme } = useTheme();
-  const [prefs, setPrefs] = useState(DEFAULT_NOTIF);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(NOTIF_PREFS_KEY).then((val) => {
-      if (val) setPrefs({ ...DEFAULT_NOTIF, ...JSON.parse(val) });
-    });
-  }, []);
-
-  const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
-      showSuccess('Saved', 'Notification preferences updated!');
-    } catch {
-      showError('Error', 'Failed to save preferences');
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <>
-      {NOTIF_ITEMS.map((item) => (
-        <View key={item.key} style={[styles.toggleRow, { borderBottomColor: theme.border }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>{item.label}</Text>
-            <Text style={[styles.toggleSub, { color: theme.subText }]}>{item.sub}</Text>
-          </View>
-          <Switch
-            value={prefs[item.key]}
-            onValueChange={() => toggle(item.key)}
-            trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
-            thumbColor={prefs[item.key] ? '#6366f1' : '#9ca3af'}
-          />
-        </View>
-      ))}
-      <SaveButton onPress={handleSave} loading={saving} label="Save Preferences" />
-    </>
-  );
-}
-
-// ── 4. App Preferences ────────────────────────────────────────────
-const APP_PREFS_KEY = '@appPrefs';
-
-// ── Appearance (dark / light) — applies instantly, no save needed ──
-function AppearanceSection() {
-  const { theme, isDark, toggleTheme } = useTheme();
-  const pick = (wantDark) => { if (wantDark !== isDark) toggleTheme(); };
-  const Card = ({ dark, icon, title, sub }) => {
-    const active = isDark === dark;
-    return (
-      <TouchableOpacity
-        style={[styles.appearanceCard, {
-          backgroundColor: active ? (isDark ? 'rgba(129,140,248,0.12)' : '#eef2ff') : theme.input,
-          borderWidth: 1.5,
-          borderColor: active ? theme.accent : theme.inputBorder,
-        }]}
-        onPress={() => pick(dark)}
-        activeOpacity={0.85}
-      >
-        <View style={[styles.appearanceIcon, { backgroundColor: active ? theme.accent : theme.bg }]}>
-          <Ionicons name={icon} size={18} color={active ? '#fff' : theme.subText} />
-        </View>
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>
+        When enabled, cash bookings are confirmed instantly. When disabled, each booking stays pending until you manually confirm it.
+      </Text>
+      <View style={[ac.card, {
+        borderColor: enabled ? 'rgba(34,197,94,0.5)' : theme.inputBorder,
+        backgroundColor: enabled ? 'rgba(34,197,94,0.08)' : theme.cardAlt,
+      }]}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.appearanceTitle, { color: theme.text }]}>{title}</Text>
-          <Text style={[styles.appearanceSub, { color: theme.subText }]}>{sub}</Text>
-        </View>
-        {active && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
-      </TouchableOpacity>
-    );
-  };
-  return (
-    <>
-      <Card dark={true}  icon="moon"  title="Dark"  sub="Easy on the eyes — recommended" />
-      <Card dark={false} icon="sunny" title="Light" sub="Bright and clean" />
-    </>
-  );
-}
-
-function AppPreferencesSection() {
-  const { theme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
-  const [timeFormat, setTimeFormat] = useState('12h');
-  const [dateFormat, setDateFormat] = useState('dd/mm/yyyy');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(APP_PREFS_KEY).then((val) => {
-      if (val) {
-        const p = JSON.parse(val);
-        if (p.timeFormat) setTimeFormat(p.timeFormat);
-        if (p.dateFormat) setDateFormat(p.dateFormat);
-      }
-    });
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const existing = await AsyncStorage.getItem(APP_PREFS_KEY);
-      const prefs = existing ? JSON.parse(existing) : {};
-      await AsyncStorage.setItem(APP_PREFS_KEY, JSON.stringify({ ...prefs, timeFormat, dateFormat, language }));
-      showSuccess('Saved', 'App preferences updated!');
-    } catch {
-      showError('Error', 'Failed to save preferences');
-    } finally { setSaving(false); }
-  };
-
-  const OptionPicker = ({ label, options, value, onSelect }) => (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: theme.subText }]}>{label}</Text>
-      <View style={styles.optionRow}>
-        {options.map((o) => (
-          <TouchableOpacity key={o.value} style={[styles.optionBtn, { backgroundColor: theme.input, borderColor: theme.inputBorder }, value === o.value && styles.optionBtnActive]} onPress={() => onSelect(o.value)}>
-            {value === o.value && <Ionicons name="checkmark-circle" size={13} color="#6366f1" style={{ marginRight: 4 }} />}
-            <Text style={[styles.optionBtnText, { color: theme.subText }, value === o.value && styles.optionBtnTextActive]}>{o.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  return (
-    <>
-      <OptionPicker label={t('language')} options={[{ label: 'English', value: 'en' }, { label: 'हिंदी', value: 'hi' }]} value={language} onSelect={setLanguage} />
-      <OptionPicker label={t('timeFormat')} options={[{ label: '12 Hour (AM/PM)', value: '12h' }, { label: '24 Hour', value: '24h' }]} value={timeFormat} onSelect={setTimeFormat} />
-      <OptionPicker label={t('dateFormat')} options={[{ label: 'DD/MM/YYYY', value: 'dd/mm/yyyy' }, { label: 'MM/DD/YYYY', value: 'mm/dd/yyyy' }, { label: 'YYYY-MM-DD', value: 'yyyy-mm-dd' }]} value={dateFormat} onSelect={setDateFormat} />
-      <SaveButton onPress={handleSave} loading={saving} label={t('savePreferences')} />
-    </>
-  );
-}
-
-// ── 5. Booking Window ─────────────────────────────────────────────
-const BOOKING_WINDOW_OPTIONS = [
-  { days: 0, label: 'Today only', sub: 'Customers can only book for the current day' },
-  { days: 1, label: 'Today + Tomorrow', sub: 'Customers can book up to 1 day ahead' },
-  { days: 3, label: 'Next 3 days', sub: 'Today and 3 days in advance' },
-  { days: 7, label: 'Next 7 days', sub: 'Today and 7 days in advance' },
-  { days: 14, label: 'Next 14 days', sub: 'Today and 2 weeks in advance' },
-  { days: 30, label: 'Next 30 days', sub: 'Today and 30 days in advance' },
-];
-
-function BookingWindowSection({ salon, onSaved }) {
-  const { theme } = useTheme();
-  const [selected, setSelected] = useState(salon?.advanceBookingDays ?? 1);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (salon?.advanceBookingDays !== undefined) setSelected(salon.advanceBookingDays);
-  }, [salon]);
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await api.put('/owner/salon', { advanceBookingDays: selected });
-      onSaved();
-      showSuccess('Saved', 'Booking window updated!');
-    } catch (err) {
-      showError('Error', err.message || 'Failed to update booking window');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <>
-      {BOOKING_WINDOW_OPTIONS.map((opt) => {
-        const active = selected === opt.days;
-        return (
-          <TouchableOpacity key={opt.days} style={[styles.radioCard, { backgroundColor: theme.input, borderColor: theme.inputBorder }, active && styles.radioCardActive]} onPress={() => setSelected(opt.days)}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.radioCardLabel, { color: theme.text }, active && styles.radioCardLabelActive]}>{opt.label}</Text>
-              <Text style={[styles.radioCardSub, { color: theme.subText }]}>{opt.sub}</Text>
-            </View>
-            {active && <Ionicons name="checkmark-circle" size={22} color="#6366f1" />}
-          </TouchableOpacity>
-        );
-      })}
-      <SaveButton onPress={handleSave} loading={loading} label="Save Booking Window" />
-    </>
-  );
-}
-
-// ── 6. Booking Mode ───────────────────────────────────────────────
-const BOOKING_MODES = [
-  { value: 'flexible', label: 'Flexible (Customer Picks) 🗓️', sub: 'Customer chooses any available time slot from all open slots.' },
-  { value: 'sequential', label: 'Sequential (Next in Line) ⏩', sub: 'Bookings assigned one after another. Customer gets the next open slot automatically.' },
-];
-
-function BookingModeSection({ salon, onSaved }) {
-  const { theme } = useTheme();
-  const [mode, setMode] = useState(salon?.bookingMode || 'sequential');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (salon?.bookingMode) setMode(salon.bookingMode);
-  }, [salon]);
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await api.put('/owner/salon', { bookingMode: mode });
-      onSaved();
-      showSuccess('Saved', 'Booking mode updated!');
-    } catch (err) {
-      showError('Error', err.message || 'Failed to update booking mode');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <>
-      {BOOKING_MODES.map((m) => {
-        const active = mode === m.value;
-        return (
-          <TouchableOpacity key={m.value} style={[styles.radioCard, { backgroundColor: theme.input, borderColor: theme.inputBorder }, active && styles.radioCardActive]} onPress={() => setMode(m.value)}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.radioCardLabel, { color: theme.text }, active && styles.radioCardLabelActive]}>{m.label}</Text>
-              <Text style={[styles.radioCardSub, { color: theme.subText }]}>{m.sub}</Text>
-            </View>
-            {active && <Ionicons name="checkmark-circle" size={22} color="#6366f1" />}
-          </TouchableOpacity>
-        );
-      })}
-      <SaveButton onPress={handleSave} loading={loading} label="Save Booking Mode" />
-    </>
-  );
-}
-
-// ── 7. Auto-Confirm ───────────────────────────────────────────────
-function AutoConfirmSection({ salon, onSaved }) {
-  const { theme } = useTheme();
-  const [autoConfirm, setAutoConfirm] = useState(salon?.autoConfirmBookings ?? true);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (salon?.autoConfirmBookings !== undefined) setAutoConfirm(salon.autoConfirmBookings);
-  }, [salon]);
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await api.put('/owner/salon', { autoConfirmBookings: autoConfirm });
-      onSaved();
-      showSuccess('Saved', `Auto-confirm ${autoConfirm ? 'enabled' : 'disabled'}!`);
-    } catch (err) {
-      showError('Error', err.message || 'Failed to update setting');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <>
-      <View style={[styles.autoConfirmCard, { borderColor: autoConfirm ? '#93c5fd' : theme.inputBorder, backgroundColor: autoConfirm ? '#eef2ff' : theme.input }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.autoConfirmTitle, { color: autoConfirm ? '#6366f1' : theme.text }]}>
-            {autoConfirm ? '✅ Auto-Confirm is ON' : '⏸️ Auto-Confirm is OFF'}
+          <Text style={[ac.title, { color: enabled ? '#22c55e' : theme.text }]}>
+            {enabled ? 'Auto-Confirm is ON' : 'Auto-Confirm is OFF'}
           </Text>
-          <Text style={[styles.toggleSub, { color: theme.subText }]}>
-            {autoConfirm ? 'New bookings are confirmed automatically.' : 'You must manually confirm each new booking.'}
+          <Text style={[ac.sub, { color: theme.subText }]}>
+            {enabled ? 'New bookings are confirmed automatically.' : 'You must manually confirm each new booking.'}
           </Text>
         </View>
         <Switch
-          value={autoConfirm}
-          onValueChange={setAutoConfirm}
-          trackColor={{ false: '#d1d5db', true: '#60a5fa' }}
-          thumbColor={autoConfirm ? '#6366f1' : '#9ca3af'}
+          value={enabled}
+          onValueChange={setEnabled}
+          trackColor={{ false: 'rgba(128,128,160,0.3)', true: 'rgba(34,197,94,0.5)' }}
+          thumbColor={enabled ? '#22c55e' : '#9ca3af'}
         />
       </View>
-      <SaveButton onPress={handleSave} loading={loading} label="Save Setting" />
-    </>
+      <PrimaryBtn label="Save Setting" onPress={handleSave} loading={loading} />
+    </View>
   );
 }
+const ac = StyleSheet.create({
+  card:  { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 15, borderRadius: 14, borderWidth: 2, marginBottom: 8 },
+  title: { fontSize: 13.5, fontWeight: '700' },
+  sub:   { fontSize: 11.5, marginTop: 1 },
+});
 
-// ── 8. Salon Photos ───────────────────────────────────────────────
-// salon.photos entries can be strings or {url, publicId, isCover} objects —
-// normalize to URL strings; passing an object as an <Image> uri crashes Fabric.
-const photoUrlsOf = (list) =>
-  (Array.isArray(list) ? list : []).map(p => (typeof p === 'string' ? p : p?.url)).filter(Boolean);
-
-function SalonPhotosSection({ salon, onSaved }) {
-  const [photos, setPhotos] = useState(photoUrlsOf(salon?.photos));
+/* ─── 8. Salon Photos ──────────────────────────────────────────── */
+function PhotosSection() {
+  const { theme } = useTheme();
+  const { salon, fetchSalon } = useSalon();
+  const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => { if (salon?.photos) setPhotos(photoUrlsOf(salon.photos)); }, [salon]);
+  useEffect(() => {
+    const list = (salon?.photos || []).map(ph => (typeof ph === 'string' ? ph : ph?.url)).filter(Boolean);
+    setPhotos(list);
+  }, [salon]);
 
   const handlePickImages = async () => {
-    if (photos.length >= 10) { showError('Limit reached', 'Maximum 10 photos allowed'); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showError('Permission denied', 'Gallery access is required to upload photos'); return; }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, quality: 0.8 });
     if (result.canceled) return;
-
-    const toUpload = result.assets.slice(0, 10 - photos.length);
     setUploading(true);
     try {
       const formData = new FormData();
-      toUpload.forEach((asset, i) => {
+      result.assets.forEach((asset, i) => {
         formData.append('photos', { uri: asset.uri, name: `photo_${i}.jpg`, type: 'image/jpeg' });
       });
-      const res = await api.post('/owner/salon/upload-photos', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/owner/salon/upload-photos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const newUrls = res.data.data?.photos || res.data.data?.urls || [];
-      const updated = [...photos, ...newUrls].slice(0, 10);
+      const updated = [...photos, ...newUrls];
       await api.put('/owner/salon/photos', { photos: updated });
       setPhotos(updated);
-      onSaved();
+      fetchSalon();
       showSuccess('Uploaded', `${newUrls.length} photo${newUrls.length !== 1 ? 's' : ''} added!`);
     } catch (err) {
       showError('Error', err.message || 'Upload failed');
@@ -525,10 +960,10 @@ function SalonPhotosSection({ salon, onSaved }) {
       {
         text: 'Remove', style: 'destructive', onPress: async () => {
           try {
-            const updated = photos.filter((p) => p !== url);
+            const updated = photos.filter(u => u !== url);
             await api.put('/owner/salon/photos', { photos: updated });
             setPhotos(updated);
-            onSaved();
+            fetchSalon();
             showSuccess('Removed', 'Photo removed');
           } catch (err) {
             showError('Error', err.message || 'Failed to remove photo');
@@ -539,393 +974,437 @@ function SalonPhotosSection({ salon, onSaved }) {
   };
 
   return (
-    <>
-      <Text style={styles.photoCount}>{photos.length}/10 photos</Text>
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>{photos.length} photo{photos.length !== 1 ? 's' : ''} — customers see these on your business page.</Text>
       {photos.length > 0 && (
-        <View style={styles.photoGrid}>
+        <View style={ph.grid}>
           {photos.map((url, i) => (
-            <View key={i} style={styles.photoThumb}>
-              <Image source={{ uri: url }} style={styles.photoImg} />
-              <TouchableOpacity style={styles.photoDeleteBtn} onPress={() => handleDelete(url)}>
+            <View key={i} style={ph.thumb}>
+              <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} />
+              <TouchableOpacity style={ph.del} onPress={() => handleDelete(url)}>
                 <Ionicons name="trash" size={12} color="#fff" />
               </TouchableOpacity>
             </View>
           ))}
         </View>
       )}
-      {photos.length === 0 && (
-        <Text style={styles.emptyText}>No photos yet. Add photos to showcase your business.</Text>
-      )}
-      <TouchableOpacity
-        style={[styles.uploadBtn, (uploading || photos.length >= 10) && { opacity: 0.6 }]}
-        onPress={handlePickImages}
-        disabled={uploading || photos.length >= 10}
-      >
-        {uploading
-          ? <ActivityIndicator color="#6366f1" size="small" />
-          : <Ionicons name="image-outline" size={18} color="#6366f1" />}
-        <Text style={styles.uploadBtnText}>{uploading ? 'Uploading…' : 'Add Photos'}</Text>
-      </TouchableOpacity>
-    </>
-  );
-}
-
-// ── 9. Closed Dates / Holidays ────────────────────────────────────
-function HolidaysSection() {
-  const { theme } = useTheme();
-  const [holidays, setHolidays] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [newDate, setNewDate] = useState('');
-  const [newReason, setNewReason] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const fetchHolidays = useCallback(async () => {
-    try {
-      const res = await api.get('/owner/salon');
-      setHolidays(res.data.data?.holidays || []);
-    } catch { setHolidays([]); } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchHolidays(); }, []);
-
-  const handleAdd = async () => {
-    if (!newDate.match(/^\d{4}-\d{2}-\d{2}$/)) { showError('Error', 'Enter date as YYYY-MM-DD'); return; }
-    if (newDate < localDate(0)) { showError('Error', 'Holiday date must be today or in the future'); return; }
-    setSaving(true);
-    try {
-      const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() || undefined });
-      setHolidays(res.data?.data?.holidays || []);
-      setNewDate(''); setNewReason(''); setAdding(false);
-      showSuccess('Added', 'Closed date added!');
-    } catch (err) {
-      showError('Error', err.message || 'Failed to add closed date');
-    } finally { setSaving(false); }
-  };
-
-  const handleDelete = (holiday) => {
-    Alert.alert('Remove Closed Date', `Remove closed date on ${holiday.date}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove', style: 'destructive', onPress: async () => {
-          try {
-            await api.delete(`/owner/salon/holidays/${holiday._id}`);
-            setHolidays((prev) => prev.filter((h) => h._id !== holiday._id));
-            showSuccess('Removed', 'Closed date removed');
-          } catch (err) {
-            showError('Error', err.message || 'Failed to remove date');
-          }
-        },
-      },
-    ]);
-  };
-
-  if (loading) return <ActivityIndicator color="#6366f1" style={{ marginVertical: 16 }} />;
-
-  return (
-    <>
-      {holidays.length === 0 && !adding && (
-        <Text style={styles.emptyText}>No closed dates set. Add a date to block bookings.</Text>
-      )}
-      {holidays.map((h) => (
-        <View key={h._id} style={[styles.holidayRow, { borderTopColor: theme.border }]}>
-          <View style={styles.holidayIcon}>
-            <Ionicons name="calendar-outline" size={16} color="#6366f1" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.holidayDate, { color: theme.text }]}>{h.date}</Text>
-            {h.reason && <Text style={[styles.holidayReason, { color: theme.subText }]}>{h.reason}</Text>}
-          </View>
-          <TouchableOpacity onPress={() => handleDelete(h)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="trash-outline" size={18} color="#dc2626" />
-          </TouchableOpacity>
-        </View>
-      ))}
-      {adding ? (
-        <View style={styles.addHolidayBox}>
-          <Field label="Date (YYYY-MM-DD)" value={newDate} setter={setNewDate} placeholder={localDate(1)} keyboard="numeric" />
-          <Field label="Reason (optional)" value={newReason} setter={setNewReason} placeholder="e.g. Public Holiday" />
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <SaveButton onPress={handleAdd} loading={saving} label="Add Date" />
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => { setAdding(false); setNewDate(''); setNewReason(''); }}>
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <TouchableOpacity style={styles.addHolidayBtn} onPress={() => setAdding(true)}>
-          <Ionicons name="add" size={18} color="#6366f1" />
-          <Text style={styles.addHolidayText}>Add Closed Date</Text>
-        </TouchableOpacity>
-      )}
-    </>
-  );
-}
-
-// ── 10. Privacy & Security ────────────────────────────────────────
-const PRIVACY_CARDS = [
-  { icon: '🔒', title: 'Data Encryption', sub: 'All your data is encrypted and stored securely.' },
-  { icon: '🚫', title: 'No Data Sharing', sub: 'We never share your information with third parties.' },
-  { icon: '🛡️', title: 'Security Updates', sub: 'Regular patches and security updates are applied.' },
-  { icon: '🔑', title: 'Token Security', sub: 'Auth tokens expire automatically and refresh securely.' },
-];
-
-
-
-function PrivacySection() {
-  const { theme } = useTheme();
-  const { logout } = useAuth();
-  const [confirming, setConfirming] = useState(false);
-  const [step, setStep] = useState(1);
-  const [deleting, setDeleting] = useState(false);
-
-  const reset = () => { setConfirming(false); setStep(1); };
-
-  const confirmDelete = async () => {
-    // OTP-only: authorized by the logged-in session, no password needed.
-    setDeleting(true);
-    try {
-      await api.post('/owner/auth/delete-account');
-      await logout();
-    } catch (err) {
-      showError('Error', err.message || 'Failed to delete account');
-    } finally { setDeleting(false); }
-  };
-
-  return (
-    <>
-      {PRIVACY_CARDS.map((card) => (
-        <View key={card.title} style={[styles.privacyCard, { borderBottomColor: theme.border }]}>
-          <Text style={styles.privacyCardIcon}>{card.icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.privacyCardTitle, { color: theme.text }]}>{card.title}</Text>
-            <Text style={[styles.privacyCardSub, { color: theme.subText }]}>{card.sub}</Text>
-          </View>
-        </View>
-      ))}
-      <LegalButtons />
-      <View style={[styles.divider, { backgroundColor: theme.border }]} />
-      {!confirming ? (
-        <TouchableOpacity style={styles.deleteAccountBtn} onPress={() => setConfirming(true)}>
-          <Ionicons name="trash-outline" size={16} color="#dc2626" />
-          <Text style={styles.deleteAccountBtnText}>Delete Account</Text>
-        </TouchableOpacity>
-      ) : step === 1 ? (
-        <View style={styles.deleteBox}>
-          <Text style={styles.deleteWarningTitle}>⚠️ This action cannot be undone</Text>
-          <Text style={styles.deleteWarningText}>Deleting your account will permanently remove:</Text>
-          {['Owner account and profile', 'Business listing and services', 'Customer reviews', 'Booking history'].map((item) => (
-            <Text key={item} style={styles.deleteWarningItem}>• {item}</Text>
-          ))}
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            <TouchableOpacity style={[styles.deleteConfirmBtn, { flex: 1 }]} onPress={() => setStep(2)}>
-              <Text style={styles.deleteConfirmText}>I understand, continue</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={reset}>
-              <Text style={styles.cancelBtnText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.deleteBox}>
-          <Text style={styles.dangerText}>Are you sure? This permanently deletes your account and all its data.</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <TouchableOpacity style={[styles.deleteForeverBtn, deleting && { opacity: 0.7 }, { flex: 1 }]} onPress={confirmDelete} disabled={deleting}>
-              {deleting ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.deleteForeverText}>Delete Forever</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={reset} disabled={deleting}>
-              <Text style={styles.cancelBtnText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </>
-  );
-}
-
-// ── Legal Buttons (inside Privacy section) ────────────────────────
-function LegalButtons() {
-  const navigation = useNavigation();
-  const { theme } = useTheme();
-  return (
-    <View style={{ gap: 8, marginVertical: 8 }}>
-      <TouchableOpacity
-        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
-        onPress={() => navigation.navigate('Legal')}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="shield-checkmark-outline" size={16} color="#6366f1" />
-        <Text style={[styles.privacyLinkText, { color: '#6366f1' }]}>View Privacy Policy</Text>
-        <Ionicons name="chevron-forward" size={14} color="#6366f1" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.privacyLinkBtn, { borderColor: theme.border }]}
-        onPress={() => { navigation.navigate('Legal'); }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="document-text-outline" size={16} color="#7c3aed" />
-        <Text style={[styles.privacyLinkText, { color: '#7c3aed' }]}>View Terms & Conditions</Text>
-        <Ionicons name="chevron-forward" size={14} color="#7c3aed" />
+      <TouchableOpacity style={[sh.outlineBtn, { borderColor: 'rgba(99,102,241,0.4)' }]} onPress={handlePickImages} disabled={uploading}>
+        {uploading ? <ActivityIndicator size="small" color="#818cf8" /> : <Ionicons name="image-outline" size={15} color="#818cf8" />}
+        <Text style={[sh.outlineBtnText, { color: '#818cf8' }]}>{uploading ? 'Uploading…' : 'Add Photos'}</Text>
       </TouchableOpacity>
     </View>
   );
 }
+const ph = StyleSheet.create({
+  grid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  thumb: { width: 88, height: 88, borderRadius: 10, overflow: 'hidden' },
+  del:   { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 4 },
+});
 
-// ── Settings Sections (uses useLanguage hook) ─────────────────────
-function SettingsSections({ salon, fetchSalon, resetKey }) {
-  const { t } = useLanguage();
+/* ─── 9. Closed Dates / Holidays ───────────────────────────────── */
+function ClosedDatesSection() {
+  const { theme } = useTheme();
+  const [holidays, setHolidays] = useState([]);
+  const [newDate, setNewDate] = useState('');
+  const [newReason, setNewReason] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  useEffect(() => {
+    api.get('/owner/salon')
+      .then(res => setHolidays(res.data.data?.workingHours?.holidays || res.data.data?.holidays || []))
+      .catch(() => {});
+  }, []);
+
+  const handleAdd = async () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { showError('Invalid date', 'Use YYYY-MM-DD format, e.g. 2026-08-15'); return; }
+    setAdding(true);
+    try {
+      const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() });
+      setHolidays(res.data.data.holidays);
+      setNewDate(''); setNewReason('');
+      showSuccess('Added', 'Closed date added!');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to add closed date');
+    } finally { setAdding(false); }
+  };
+
+  const handleDelete = async (id) => {
+    setDeleting(id);
+    try {
+      const res = await api.delete(`/owner/salon/holidays/${id}`);
+      setHolidays(res.data.data.holidays);
+      showSuccess('Removed', 'Closed date removed');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to remove date');
+    } finally { setDeleting(null); }
+  };
+
   return (
-    <>
-      <Section resetKey={resetKey} title="Appearance" subtitle="Dark or light theme" icon="color-palette-outline" iconBg="#e0e7ff" iconColor="#6366f1" defaultOpen>
-        <AppearanceSection />
-      </Section>
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>
+        Mark specific dates as closed (e.g. holidays, events). Customers cannot book on these dates.
+      </Text>
 
-      <Section resetKey={resetKey} title={t('salonInformation')} subtitle={t('salonInfoSub')} icon="globe-outline" iconBg="#dcfce7" iconColor="#16a34a">
-        <SalonInfoSection salon={salon} onSaved={fetchSalon} />
-      </Section>
+      <View style={[cd.addCard, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+        <Text style={[cd.addTitle, { color: theme.text }]}>Add Closed Date</Text>
+        <LabelInput label="Date" value={newDate} onChange={setNewDate} placeholder="YYYY-MM-DD (e.g. 2026-08-15)" keyboard="numbers-and-punctuation" disabled={adding} />
+        <LabelInput label="Reason (optional)" value={newReason} onChange={setNewReason} placeholder="e.g. Diwali, Owner holiday" disabled={adding} />
+        <PrimaryBtn label="Add Closed Date" icon="add" onPress={handleAdd} loading={adding} />
+      </View>
 
-      <Section resetKey={resetKey} title={t('workingHours')} subtitle={t('workingHoursSub')} icon="time-outline" iconBg="#e0e7ff" iconColor="#6366f1">
-        <WorkingHoursSection salon={salon} onSaved={fetchSalon} />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('notifications')} subtitle={t('notificationsSub')} icon="notifications-outline" iconBg="#fef3c7" iconColor="#d97706">
-        <NotificationsSection />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('appPreferences')} subtitle={t('appPrefSub')} icon="settings-outline" iconBg="#ede9fe" iconColor="#7c3aed">
-        <AppPreferencesSection />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('bookingWindow')} subtitle={t('bookingWindowSub')} icon="calendar-outline" iconBg="#f3e8ff" iconColor="#9333ea">
-        <BookingWindowSection salon={salon} onSaved={fetchSalon} />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('bookingMode')} subtitle={t('bookingModeSub')} icon="git-branch-outline" iconBg="#ccfbf1" iconColor="#0d9488">
-        <BookingModeSection salon={salon} onSaved={fetchSalon} />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('autoConfirm')} subtitle={t('autoConfirmSub')} icon="checkmark-circle-outline" iconBg="#dcfce7" iconColor="#16a34a">
-        <AutoConfirmSection salon={salon} onSaved={fetchSalon} />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('salonPhotos')} subtitle={t('salonPhotosSub')} icon="camera-outline" iconBg="#fce7f3" iconColor="#db2777">
-        <SalonPhotosSection salon={salon} onSaved={fetchSalon} />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('closedDates')} subtitle={t('closedDatesSub')} icon="calendar-clear-outline" iconBg="#fee2e2" iconColor="#dc2626">
-        <HolidaysSection />
-      </Section>
-
-      <Section resetKey={resetKey} title={t('privacySecurity')} subtitle={t('privacySecuritySub')} icon="lock-closed-outline" iconBg="#fee2e2" iconColor="#dc2626">
-        <PrivacySection />
-      </Section>
-    </>
+      {holidays.length === 0 ? (
+        <Text style={{ fontSize: 13, color: theme.placeholder, textAlign: 'center', paddingVertical: 12 }}>No closed dates set.</Text>
+      ) : (
+        [...holidays].sort((x, y) => new Date(x.date) - new Date(y.date)).map(h => {
+          const dateStr = new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+          return (
+            <View key={h._id} style={cd.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={cd.rowDate}>{dateStr}</Text>
+                {!!h.reason && <Text style={cd.rowReason}>{h.reason}</Text>}
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(h._id)} disabled={deleting === h._id} style={{ padding: 6 }}>
+                {deleting === h._id
+                  ? <ActivityIndicator size="small" color="#ef4444" />
+                  : <Ionicons name="trash-outline" size={17} color="#ef4444" />}
+              </TouchableOpacity>
+            </View>
+          );
+        })
+      )}
+    </View>
   );
 }
+const cd = StyleSheet.create({
+  addCard:  { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 12 },
+  addTitle: { fontSize: 13, fontWeight: '700', marginBottom: 12 },
+  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', marginBottom: 8 },
+  rowDate:  { fontSize: 13.5, fontWeight: '700', color: '#f87171' },
+  rowReason:{ fontSize: 11.5, color: '#fca5a5', marginTop: 1 },
+});
 
-// ── Main ──────────────────────────────────────────────────────────
+/* ─── 10. Working Hours (per-day, like web) ────────────────────── */
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DEFAULT_HOURS = DAY_NAMES.map(day => ({ day, isOpen: day !== 'Sunday', openTime: '09:00', closeTime: '20:00' }));
+
+function WorkingHoursSection() {
+  const { theme } = useTheme();
+  const [hours, setHours]   = useState(DEFAULT_HOURS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [picker, setPicker]   = useState(null); // { index, field } | null
+
+  useEffect(() => {
+    api.get('/owner/working-hours')
+      .then(res => {
+        const obj = res.data.data?.workingHours;
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          setHours(DAY_NAMES.map(dayName => {
+            const v = obj[dayName.toLowerCase()] || {};
+            return { day: dayName, isOpen: !v.isClosed, openTime: v.open || '09:00', closeTime: v.close || '20:00' };
+          }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleDay = (index) => setHours(prev => prev.map((h, i) => i === index ? { ...h, isOpen: !h.isOpen } : h));
+  const setTime   = (index, field, value) => setHours(prev => prev.map((h, i) => i === index ? { ...h, [field]: value } : h));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const workingHoursObj = {};
+      hours.forEach(h => {
+        workingHoursObj[h.day.toLowerCase()] = { open: h.openTime, close: h.closeTime, isClosed: !h.isOpen };
+      });
+      await api.put('/owner/working-hours', { workingHours: workingHoursObj });
+      showSuccess('Saved', 'Working hours updated!');
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to save working hours');
+    } finally { setSaving(false); }
+  };
+
+  if (loading) {
+    return <ActivityIndicator color="#6366f1" style={{ paddingVertical: 24 }} />;
+  }
+
+  return (
+    <View>
+      <Text style={[sh.sectionIntro, { color: theme.subText }]}>
+        Set your open and close times for each day of the week.
+      </Text>
+      {hours.map((item, index) => (
+        <View key={item.day} style={[wh.dayCard, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+          <View style={wh.dayHeader}>
+            <Text style={[wh.dayName, { color: theme.text }]}>{item.day}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[wh.dayStatus, { color: item.isOpen ? '#22c55e' : theme.placeholder }]}>
+                {item.isOpen ? 'Open' : 'Closed'}
+              </Text>
+              <Switch
+                value={item.isOpen}
+                onValueChange={() => toggleDay(index)}
+                trackColor={{ false: 'rgba(128,128,160,0.3)', true: 'rgba(99,102,241,0.6)' }}
+                thumbColor={item.isOpen ? '#6366f1' : '#9ca3af'}
+              />
+            </View>
+          </View>
+          {item.isOpen && (
+            <View style={wh.timeRow}>
+              <TouchableOpacity style={[wh.timeBtn, { backgroundColor: theme.input, borderColor: theme.inputBorder }]}
+                onPress={() => setPicker({ index, field: 'openTime' })}>
+                <Text style={[wh.timeBtnText, { color: theme.text }]}>{hourLabel(item.openTime)}</Text>
+                <Ionicons name="chevron-down" size={13} color={theme.subText} />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 11, color: theme.placeholder }}>to</Text>
+              <TouchableOpacity style={[wh.timeBtn, { backgroundColor: theme.input, borderColor: theme.inputBorder }]}
+                onPress={() => setPicker({ index, field: 'closeTime' })}>
+                <Text style={[wh.timeBtnText, { color: theme.text }]}>{hourLabel(item.closeTime)}</Text>
+                <Ionicons name="chevron-down" size={13} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      ))}
+      <PrimaryBtn label="Save Working Hours" onPress={handleSave} loading={saving} />
+
+      <PickerModal
+        visible={!!picker}
+        title={picker?.field === 'openTime' ? 'Opening Time' : 'Closing Time'}
+        options={HOURS_OPTIONS}
+        value={picker ? hours[picker.index][picker.field] : null}
+        onSelect={v => picker && setTime(picker.index, picker.field, v)}
+        onClose={() => setPicker(null)}
+      />
+    </View>
+  );
+}
+const wh = StyleSheet.create({
+  dayCard:   { borderRadius: 14, borderWidth: 1, marginBottom: 8, overflow: 'hidden' },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
+  dayName:   { fontSize: 13.5, fontWeight: '700' },
+  dayStatus: { fontSize: 11.5, fontWeight: '700' },
+  timeRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
+  timeBtn:   { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
+  timeBtnText: { fontSize: 13, fontWeight: '600' },
+});
+
+/* ─── 11. Privacy & Security ───────────────────────────────────── */
+const SHIELDS = [
+  { icon: 'lock-closed-outline',     title: 'Data Encryption',  desc: 'All your data is encrypted end-to-end and stored securely.',      color: '#818cf8' },
+  { icon: 'ban-outline',             title: 'No Data Sharing',  desc: 'We never share your information with third parties.',             color: '#f87171' },
+  { icon: 'shield-checkmark-outline', title: 'Security Updates', desc: 'Regular patches and security updates are applied automatically.', color: '#34d399' },
+  { icon: 'key-outline',             title: 'Token Security',   desc: 'Auth tokens expire automatically and refresh securely.',          color: '#a78bfa' },
+];
+
+function PrivacySection() {
+  const { theme } = useTheme();
+  const { logout } = useAuth();
+  const [showDelete, setShowDelete] = useState(false);
+  const [step, setStep] = useState(1);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.post('/owner/auth/delete-account');
+      showSuccess('Deleted', 'Account deleted. Goodbye!');
+      logout();
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Could not delete account. Try again.');
+    } finally { setDeleting(false); }
+  };
+
+  return (
+    <View>
+      {SHIELDS.map(({ icon, title, desc, color }) => (
+        <View key={title} style={[pv.shield, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
+          <View style={[pv.shieldIcon, { backgroundColor: `${color}1f` }]}>
+            <Ionicons name={icon} size={15} color={color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[pv.shieldTitle, { color: theme.text }]}>{title}</Text>
+            <Text style={[pv.shieldDesc, { color: theme.subText }]}>{desc}</Text>
+          </View>
+        </View>
+      ))}
+
+      <View style={[{ borderTopWidth: 1, borderTopColor: theme.rowBorder, marginTop: 8, paddingTop: 12 }]}>
+        {!showDelete ? (
+          <TouchableOpacity style={pv.deleteBtn} onPress={() => { setShowDelete(true); setStep(1); }} activeOpacity={0.8}>
+            <Ionicons name="trash-outline" size={18} color="#f87171" />
+            <View style={{ flex: 1 }}>
+              <Text style={pv.deleteBtnTitle}>Delete Account</Text>
+              <Text style={pv.deleteBtnSub}>Permanently remove your account and all data</Text>
+            </View>
+            <Ionicons name="chevron-down" size={14} color="#f87171" />
+          </TouchableOpacity>
+        ) : (
+          <View style={pv.deleteBox}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={pv.deleteBoxTitle}>Delete Account Forever</Text>
+              <TouchableOpacity onPress={() => { setShowDelete(false); setStep(1); }}>
+                <Ionicons name="close" size={16} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+
+            {step === 1 ? (
+              <>
+                <Text style={pv.deleteWarn}>This will permanently delete:</Text>
+                {['Your owner account and profile', 'Your business listing and all its services', 'All customer reviews on your business', 'All booking history'].map(item => (
+                  <Text key={item} style={pv.deleteItem}>•  {item}</Text>
+                ))}
+                <Text style={[pv.deleteWarn, { marginTop: 8, fontSize: 11.5 }]}>This action cannot be undone.</Text>
+                <TouchableOpacity style={pv.deleteConfirm} onPress={() => setStep(2)}>
+                  <Text style={pv.deleteConfirmText}>I understand, continue</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={pv.deleteWarn}>Are you sure? This will permanently delete your account and all its data.</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                  <TouchableOpacity style={[sh.cancelBtn, { borderColor: theme.inputBorder, flex: 1 }]} onPress={() => setStep(1)}>
+                    <Text style={[sh.cancelBtnText, { color: theme.subText }]}>Back</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[pv.deleteConfirm, { flex: 1, marginTop: 0 }]} onPress={handleDelete} disabled={deleting}>
+                    {deleting ? <ActivityIndicator color="#fff" size="small" /> : <Text style={pv.deleteConfirmText}>Delete Forever</Text>}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+const pv = StyleSheet.create({
+  shield:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 13, borderRadius: 14, borderWidth: 1, marginBottom: 8 },
+  shieldIcon:  { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  shieldTitle: { fontSize: 13, fontWeight: '700' },
+  shieldDesc:  { fontSize: 11.5, marginTop: 1, lineHeight: 16 },
+  deleteBtn:   { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  deleteBtnTitle: { fontSize: 13, fontWeight: '700', color: '#f87171' },
+  deleteBtnSub:   { fontSize: 11, color: '#fca5a5', marginTop: 1 },
+  deleteBox:      { borderRadius: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.06)', padding: 14 },
+  deleteBoxTitle: { fontSize: 13.5, fontWeight: '800', color: '#f87171' },
+  deleteWarn:     { fontSize: 12.5, fontWeight: '600', color: '#f87171', marginBottom: 4 },
+  deleteItem:     { fontSize: 11.5, color: '#fca5a5', marginTop: 3, marginLeft: 4 },
+  deleteConfirm:  { backgroundColor: '#dc2626', borderRadius: 12, paddingVertical: 11, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  deleteConfirmText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+});
+
+/* ─── 12. About ────────────────────────────────────────────────── */
+function AboutSection() {
+  const { theme } = useTheme();
+  const navigation = useNavigation();
+  return (
+    <View>
+      {[
+        { label: 'App Name', value: 'GlowLoox' },
+        { label: 'Version',  value: '1.0.0' },
+        { label: 'Platform', value: 'Android (Owner App)' },
+        { label: 'Support',  value: 'glowloox@gmail.com' },
+      ].map(({ label, value }) => <FieldRow key={label} label={label} value={value} />)}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('Legal')}>
+          <Text style={ab.link}>Privacy Policy</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Legal')}>
+          <Text style={ab.link}>Terms of Service</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openURL('mailto:glowloox@gmail.com')}>
+          <Text style={ab.link}>Help Center</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+const ab = StyleSheet.create({
+  link: { fontSize: 12.5, fontWeight: '700', color: '#818cf8' },
+});
+
+/* ─── Main screen ──────────────────────────────────────────────── */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { salon, fetchSalon } = useSalon();
   const { theme } = useTheme();
-  const [resetKey, setResetKey] = useState(0);
+  const { salon } = useSalon();
+  const [activeId, setActiveId] = useState(null);
 
-  useFocusEffect(useCallback(() => {
-    return () => setResetKey((k) => k + 1);
-  }, []));
+  useFocusEffect(useCallback(() => () => setActiveId(null), []));
+
+  const toggle = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+    setActiveId(prev => prev === id ? null : id);
+  };
+
+  const bizName = BIZ_NAME[salon?.businessType] || 'Business';
+
+  // Same 12 sections, same order and copy as the website
+  const SECTIONS = [
+    { id: 'profile',        icon: 'person-outline',           iconBg: 'rgba(99,102,241,0.15)',  iconColor: '#818cf8', title: 'My Profile',              subtitle: 'Name, email and account details',                        content: <ProfileSection /> },
+    { id: 'salon',          icon: 'globe-outline',            iconBg: 'rgba(16,185,129,0.15)',  iconColor: '#10b981', title: `${bizName} Information`,  subtitle: `${bizName} name, category and contact details`,          content: <BusinessInfoSection /> },
+    { id: 'notifications',  icon: 'notifications-outline',    iconBg: 'rgba(245,158,11,0.15)',  iconColor: '#f59e0b', title: 'Notifications',           subtitle: 'Email, SMS and push notification preferences',           content: <NotificationsSection /> },
+    { id: 'app',            icon: 'settings-outline',         iconBg: 'rgba(139,92,246,0.15)',  iconColor: '#a78bfa', title: 'App Preferences',         subtitle: 'Theme, language and display settings',                   content: <AppPreferencesSection /> },
+    { id: 'booking-window', icon: 'calendar-outline',         iconBg: 'rgba(59,130,246,0.15)',  iconColor: '#3b82f6', title: 'Booking Window',          subtitle: 'How far in advance customers can book',                  content: <BookingWindowSection /> },
+    { id: 'booking-mode',   icon: 'git-branch-outline',       iconBg: 'rgba(20,184,166,0.15)',  iconColor: '#14b8a6', title: 'Booking Mode',            subtitle: 'Sequential (next-in-line) or Flexible (customer picks slot)', content: <BookingModeSection /> },
+    { id: 'auto-confirm',   icon: 'checkmark-circle-outline', iconBg: 'rgba(34,197,94,0.15)',   iconColor: '#22c55e', title: 'Auto-Confirm Bookings',   subtitle: 'Confirm bookings instantly or review them manually',      content: <AutoConfirmSection /> },
+    { id: 'photos',         icon: 'camera-outline',           iconBg: 'rgba(236,72,153,0.15)',  iconColor: '#ec4899', title: `${bizName} Photos`,       subtitle: `Upload photos customers will see on your ${bizName.toLowerCase()} page`, content: <PhotosSection /> },
+    { id: 'closed-dates',   icon: 'calendar-clear-outline',   iconBg: 'rgba(239,68,68,0.15)',   iconColor: '#ef4444', title: 'Closed Dates / Holidays', subtitle: `Mark specific dates when your ${bizName.toLowerCase()} is closed`, content: <ClosedDatesSection /> },
+    { id: 'working-hours',  icon: 'time-outline',             iconBg: 'rgba(249,115,22,0.15)',  iconColor: '#f97316', title: 'Working Hours',           subtitle: 'Set open and close times for each day of the week',      content: <WorkingHoursSection /> },
+    { id: 'privacy',        icon: 'lock-closed-outline',      iconBg: 'rgba(100,116,139,0.15)', iconColor: '#94a3b8', title: 'Privacy & Security',      subtitle: 'Data protection, security and account deletion',          content: <PrivacySection /> },
+    { id: 'about',          icon: 'information-circle-outline', iconBg: 'rgba(128,128,160,0.15)', iconColor: '#9ca3af', title: 'About',                 subtitle: 'App version, support and legal',                          content: <AboutSection /> },
+  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
+      <View style={[m.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <View>
+          <Text style={[m.headerTitle, { color: theme.text }]}>Settings</Text>
+          <Text style={[m.headerSub, { color: theme.subText }]}>Manage your account, business, and preferences</Text>
+        </View>
         <DrawerMenuButton />
       </View>
-      <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }}>
-        <SettingsSections salon={salon} fetchSalon={fetchSalon} resetKey={resetKey} />
+      <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {SECTIONS.map(({ id, icon, iconBg, iconColor, title, subtitle, content }) => (
+          <Accordion key={id} id={id} activeId={activeId} onToggle={toggle}
+            icon={icon} iconBg={iconBg} iconColor={iconColor} title={title} subtitle={subtitle}>
+            {content}
+          </Accordion>
+        ))}
       </ScrollView>
     </View>
   );
 }
 
-const sStyles = StyleSheet.create({
-  wrapper: { borderRadius: 14, borderWidth: 1, marginBottom: 10, overflow: 'hidden', elevation: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 8 },
-  iconCircle: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  title: { fontSize: 14, fontWeight: '600' },
-  body: { padding: 16, paddingTop: 8, borderTopWidth: 1 },
+const m = StyleSheet.create({
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '800' },
+  headerSub:   { fontSize: 11.5, marginTop: 2 },
 });
 
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '800' },
-  field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  input: { borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 12, height: 46, fontSize: 14, color: '#111827' },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  chipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-  chipText: { fontSize: 12, color: '#374151', textTransform: 'capitalize' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  dayChip: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  dayChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-  dayChipText: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
-  dayChipTextActive: { color: '#fff' },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  toggleSub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  saveBtn: { backgroundColor: '#6366f1', borderRadius: 10, height: 46, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  radioCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f9fafb', marginBottom: 8 },
-  radioCardActive: { borderColor: '#6366f1', backgroundColor: '#eef2ff' },
-  radioCardLabel: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  radioCardLabelActive: { color: '#6366f1' },
-  radioCardSub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  autoConfirmCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 10, borderWidth: 1.5, marginBottom: 8 },
-  autoConfirmTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  optionBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#f9fafb' },
-  optionBtnActive: { borderColor: '#6366f1', backgroundColor: '#eef2ff' },
-  optionBtnText: { fontSize: 12, color: '#374151', fontWeight: '500' },
-  optionBtnTextActive: { color: '#6366f1', fontWeight: '700' },
-  photoCount: { fontSize: 12, color: '#6b7280', marginBottom: 10 },
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  photoThumb: { width: 88, height: 88, borderRadius: 8, overflow: 'hidden' },
-  photoImg: { width: '100%', height: '100%' },
-  photoDeleteBtn: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 4 },
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eef2ff' },
-  uploadBtnText: { fontSize: 13, color: '#6366f1', fontWeight: '600' },
-  emptyText: { fontSize: 13, color: '#9ca3af', marginBottom: 12 },
-  holidayRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  holidayIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  holidayDate: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  holidayReason: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  addHolidayBox: { borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12, marginTop: 8 },
-  addHolidayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 8, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1.5, borderColor: '#93c5fd', backgroundColor: '#eef2ff' },
-  addHolidayText: { fontSize: 13, color: '#6366f1', fontWeight: '600' },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#d1d5db', marginTop: 8 },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-privacyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  privacyCardIcon: { fontSize: 20 },
-  privacyCardTitle: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  privacyCardSub: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  divider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 12 },
-  privacyLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, marginVertical: 8 },
-  privacyLinkText: { fontSize: 13, fontWeight: '600', flex: 1 },
-  deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#fca5a5', backgroundColor: '#fee2e2' },
-  deleteAccountBtnText: { fontSize: 13, fontWeight: '700', color: '#dc2626' },
-  deleteBox: { backgroundColor: '#fff5f5', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#fca5a5' },
-  deleteWarningTitle: { fontSize: 14, fontWeight: '700', color: '#dc2626', marginBottom: 8 },
-  deleteWarningText: { fontSize: 13, color: '#374151', marginBottom: 6 },
-  deleteWarningItem: { fontSize: 13, color: '#6b7280', marginBottom: 2 },
-  dangerText: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 10 },
-  pwRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 46, marginBottom: 2 },
-  deleteConfirmBtn: { height: 44, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  deleteConfirmText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  deleteForeverBtn: { height: 44, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  deleteForeverText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  appearanceCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  appearanceIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  appearanceTitle: { fontSize: 14, fontWeight: '700' },
-  appearanceSub: { fontSize: 11, marginTop: 1 },
+/* ─── Shared styles ────────────────────────────────────────────── */
+const sh = StyleSheet.create({
+  fieldRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 10, borderBottomWidth: 1 },
+  fieldLabel:   { width: 104, fontSize: 13, flexShrink: 0 },
+  fieldValue:   { flex: 1, fontSize: 13, fontWeight: '600' },
+  inpLabel:     { fontSize: 12.5, fontWeight: '600', marginBottom: 6 },
+  inp:          { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 14 },
+  inpError:     { fontSize: 11, color: '#ef4444', marginTop: 3 },
+  selectRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  primaryBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: '#6366f1', borderRadius: 12, height: 46, marginTop: 8 },
+  primaryBtnText: { color: '#fff', fontSize: 13.5, fontWeight: '700' },
+  cancelBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1.5, borderRadius: 12, height: 46, paddingHorizontal: 18, marginTop: 8 },
+  cancelBtnText:{ fontSize: 13, fontWeight: '600' },
+  outlineBtn:   { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10, marginTop: 12 },
+  outlineBtnText: { fontSize: 13, fontWeight: '600' },
+  sectionIntro: { fontSize: 12.5, lineHeight: 18, marginBottom: 12 },
+  pickerOverlay:{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 28 },
+  pickerSheet:  { borderRadius: 18, padding: 16, maxHeight: 500 },
+  pickerTitle:  { fontSize: 15, fontWeight: '800', marginBottom: 10 },
+  pickerRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 10 },
+  pickerRowText:{ fontSize: 14 },
 });
