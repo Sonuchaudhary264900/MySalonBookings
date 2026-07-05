@@ -123,7 +123,10 @@ const isOriginAllowed = (origin) => {
   try {
     const { hostname } = new URL(origin);
     if (firstPartyHostRegex.test(hostname)) return true;
-    if (process.env.NODE_ENV !== "production" && hostname === "localhost") return true;
+    // localhost / 127.0.0.1 are always allowed: a remote attacker cannot make a
+    // victim's browser send a loopback Origin, and this lets local dev builds
+    // test against the production API.
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
   } catch { /* malformed origin — reject below */ }
   return false;
 };
