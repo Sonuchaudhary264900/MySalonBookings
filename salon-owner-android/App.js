@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import { Animated, ActivityIndicator, View, Text, TouchableOpacity, StyleSheet, Alert, Image, Dimensions, Modal, ScrollView } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
+import { toastConfig } from './src/components/ToastConfig';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
@@ -550,7 +551,7 @@ export default function App() {
                   <RootNavigator />
                   <BookingAlertModal />
                   <NotificationTapHandler />
-                  <Toast />
+                  <Toast config={toastConfig} topOffset={54} />
                 </NotificationProvider>
               </SalonProvider>
             </AuthProvider>
