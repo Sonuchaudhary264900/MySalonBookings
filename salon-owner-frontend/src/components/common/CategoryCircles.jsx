@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutGrid, Camera, Loader2 } from 'lucide-react';
+import { LayoutGrid, Camera, Loader2, Pencil } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import { CATEGORY_CARD_IMAGE_MAP, SUBCATEGORY_IMAGE_MAP } from '../../constants/salonCategories';
 
@@ -45,6 +45,7 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
   const longFiredRef  = React.useRef(false);
   const touchOrigin   = React.useRef({ x: 0, y: 0 });
   const fileInputRef  = React.useRef(null);
+  const penInputRef   = React.useRef(null);
 
   const setRef = React.useCallback(el => {
     selfRef.current = el;
@@ -118,7 +119,7 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
   const showImg = !isAll && !!imgSrc && !imgBroken;
 
   const circleStyle = {
-    width: 54, height: 54, borderRadius: '50%', overflow: 'hidden',
+    width: 68, height: 68, borderRadius: '50%', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     position: 'relative',
     background: showImg ? '#111' : isSelected
@@ -129,6 +130,8 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
       : '0 0 0 1.5px rgba(255,255,255,0.09)',
     transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
   };
+
+  const showPen = !isAll && showEdit && onImageChange;
 
   return (
     <div
@@ -152,24 +155,51 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
       onTouchMove={handleTouchMove}
       onContextMenu={e => e.preventDefault()}
     >
-      <div style={circleStyle}>
-        {isAll ? (
-          <LayoutGrid style={{ width: 22, height: 22, color: '#fff' }} />
-        ) : showImg ? (
-          <img
-            src={imgSrc} alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={() => setImgBroken(true)}
-          />
-        ) : (
-          <div style={{ color: isSelected ? '#fff' : '#6366f1', display: 'flex' }}>
-            <CategoryIcon label={label} className="w-[22px] h-[22px]" />
-          </div>
-        )}
-        {isUploading && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Loader2 style={{ width: 16, height: 16, color: '#fff' }} className="animate-spin" />
-          </div>
+      <div style={{ position: 'relative' }}>
+        <div style={circleStyle}>
+          {isAll ? (
+            <LayoutGrid style={{ width: 27, height: 27, color: '#fff' }} />
+          ) : showImg ? (
+            <img
+              src={imgSrc} alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={() => setImgBroken(true)}
+            />
+          ) : (
+            <div style={{ color: isSelected ? '#fff' : '#6366f1', display: 'flex' }}>
+              <CategoryIcon label={label} className="w-[27px] h-[27px]" />
+            </div>
+          )}
+          {isUploading && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Loader2 style={{ width: 20, height: 20, color: '#fff' }} className="animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* pen badge — click to add/change photo (discoverable) */}
+        {showPen && !isUploading && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); penInputRef.current?.click(); }}
+            title="Change photo"
+            style={{
+              position: 'absolute', bottom: -2, right: -2,
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#818cf8,#6366f1)',
+              border: '2px solid #0b0b18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.5)',
+              padding: 0,
+            }}
+          >
+            <Pencil style={{ width: 12, height: 12, color: '#fff' }} />
+            <input
+              ref={penInputRef}
+              type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageChange(label, f); e.target.value = ''; }}
+            />
+          </button>
         )}
       </div>
 
@@ -182,8 +212,8 @@ export const CircleButton = ({ label, imgSrc, isSelected, isUploading, onSelect,
       }} />
 
       <span style={{
-        fontSize: 11, fontWeight: isSelected ? 700 : 500,
-        whiteSpace: 'nowrap', maxWidth: 72, textAlign: 'center',
+        fontSize: 11.5, fontWeight: isSelected ? 700 : 500,
+        whiteSpace: 'nowrap', maxWidth: 88, textAlign: 'center',
         overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2,
         color: isSelected ? '#fff' : 'rgba(156,163,175,1)',
         transition: 'color 0.22s ease',
