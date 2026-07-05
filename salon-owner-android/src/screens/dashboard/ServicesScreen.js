@@ -13,6 +13,60 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useSalon } from '../../context/SalonContext';
 import { showSuccess, showError } from '../../utils/toast';
+import {
+  getCategoriesForSalonType, CATEGORY_CARD_IMAGE_MAP, SUBCATEGORY_IMAGE_MAP,
+} from '../../data/salonCategoriesFull';
+
+// ── Category circle images — same resolution order as the website ──
+const getCatImg = (label, salon, catalogMap) => {
+  const saved = salon?.categoryImages;
+  if (saved && saved[label]) return saved[label];
+  if (catalogMap?.categoryImages?.[label]) return catalogMap.categoryImages[label];
+  return CATEGORY_CARD_IMAGE_MAP[label] || null;
+};
+
+const getSubImg = (catLabel, subLabel, salon, catalogMap) => {
+  const key = `${catLabel}::${subLabel}`;
+  const saved = salon?.categoryImages;
+  if (saved && saved[key]) return saved[key];
+  if (catalogMap?.subCategoryImages?.[subLabel]) return catalogMap.subCategoryImages[subLabel];
+  if (catalogMap?.serviceImages?.[subLabel]) return catalogMap.serviceImages[subLabel];
+  return SUBCATEGORY_IMAGE_MAP[subLabel] || null;
+};
+
+// ── CircleButton — RN port of the website's 54px category circle ──
+function CircleButton({ label, imgSrc, isSelected, isAll, onSelect }) {
+  const { theme } = useTheme();
+  const [broken, setBroken] = useState(false);
+  const showImg = !isAll && !!imgSrc && !broken;
+  return (
+    <TouchableOpacity onPress={onSelect} activeOpacity={0.8}
+      style={{ alignItems: 'center', paddingHorizontal: 8, opacity: isSelected ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
+      <View style={[cb.circle, isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' }, !showImg && !isAll && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt }]}>
+        {isAll ? (
+          <Ionicons name="grid-outline" size={21} color="#fff" />
+        ) : showImg ? (
+          <Image source={{ uri: imgSrc }} style={{ width: '100%', height: '100%' }} onError={() => setBroken(true)} />
+        ) : (
+          <Text style={{ fontSize: 18, fontWeight: '800', color: isSelected ? '#fff' : theme.subText }}>{label.charAt(0)}</Text>
+        )}
+      </View>
+      <Text numberOfLines={2} style={[cb.label, { color: isSelected ? theme.accent : theme.subText, fontWeight: isSelected ? '800' : '600' }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+const cb = StyleSheet.create({
+  circle: {
+    width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#4f46e5', borderWidth: 1.5,
+  },
+  circleSelected: {
+    borderWidth: 3, borderColor: '#818cf8',
+    shadowColor: '#6366f1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+  },
+  label: { fontSize: 10.5, marginTop: 5, textAlign: 'center', maxWidth: 68 },
+});
 
 // ── Category constants ──────────────────────────────────────────
 const CATEGORY_ORDER = [
@@ -818,7 +872,9 @@ export default function ServicesScreen() {
   const [refreshing, setRefreshing]     = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCatLabel, setSelectedCatLabel] = useState(null);
+  const [selectedSubLabel, setSelectedSubLabel] = useState(null);
+  const [catalogMap, setCatalogMap]     = useState(null);
   const [search, setSearch]             = useState('');
   const [showMenuSection, setShowMenuSection] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState([]);
@@ -837,7 +893,7 @@ export default function ServicesScreen() {
 
   const handleBulkSet = async () => {
     if (bulkSaving) return;
-    const targets = (grouped.find(([c]) => c === selectedCategory)?.[1] || []).filter(s => s._id || s.id);
+    const targets = displayedServices.filter(s => s._id || s.id);
     if (!targets.length) { showError('No services', 'Nothing to update in this category'); return; }
     const patch = {};
     if (bulkEnabled.has('price')    && bulkPrice    !== '' && Number(bulkPrice)    >= 0) patch.basePrice = Number(bulkPrice);
@@ -891,14 +947,27 @@ export default function ServicesScreen() {
 
   const activeSuggestions = pricingSuggestions.filter(s => !dismissedPricing.includes(String(s.serviceId)));
 
+  // Admin catalog images (same endpoint as web useCatalogImages)
+  useEffect(() => {
+    if (!salon?.businessType) return;
+    api.get('/public/catalog-images', { params: { businessType: salon.businessType } })
+      .then(res => setCatalogMap({
+        categoryImages:    res.data?.data?.categoryImages    || {},
+        subCategoryImages: res.data?.data?.subCategoryImages || {},
+        serviceImages:     res.data?.data?.serviceImages     || {},
+      }))
+      .catch(() => {});
+  }, [salon?.businessType]);
+
   useEffect(() => {
     const onBack = () => {
-      if (selectedCategory) { setSelectedCategory(null); return true; }
+      if (selectedSubLabel) { setSelectedSubLabel(null); return true; }
+      if (selectedCatLabel) { setSelectedCatLabel(null); return true; }
       return false;
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
     return () => sub.remove();
-  }, [selectedCategory]);
+  }, [selectedCatLabel, selectedSubLabel]);
 
   const onRefresh = async () => { setRefreshing(true); await fetchServices(); setRefreshing(false); };
 
@@ -958,142 +1027,57 @@ export default function ServicesScreen() {
 
   const isUnisex = salon?.servedGender === 'unisex';
 
-  const renderCategoryCard = ([cat, svcs]) => (
-    <TouchableOpacity
-      key={cat}
-      style={[styles.catNavCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-      onPress={() => setSelectedCategory(cat)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.catNavIconBox}>
-        <Ionicons name={getCatIcon(cat)} size={18} color={theme.accent} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.catNavTitle, { color: theme.text }]}>{cat}</Text>
-        <Text style={[styles.catNavSub, { color: theme.subText }]}>
-          {svcs.length} service{svcs.length !== 1 ? 's' : ''}
-        </Text>
-      </View>
-      {isUnisex && MALE_ONLY_CATS.includes(cat)   && <View style={styles.genderTagM}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.genderTagMTxt}> Men</Text></View>}
-      {isUnisex && FEMALE_ONLY_CATS.includes(cat) && <View style={styles.genderTagF}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.genderTagFTxt}> Women</Text></View>}
-      <View style={[styles.countBadge, { backgroundColor: theme.bg }]}>
-        <Text style={[styles.countBadgeText, { color: theme.subText }]}>{svcs.length}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={theme.subText} />
-    </TouchableOpacity>
-  );
+  // ── Web-parity drill-down data (Level 1 → 2 → 3) ────────────────
+  const categoriesWithServices = useMemo(() => {
+    const fromDefs = getCategoriesForSalonType(salon?.businessType, salon?.servedGender).map(c => c.label);
+    const fromSvcs = grouped.map(([label]) => label);
+    const seen = new Set(fromDefs);
+    return [...fromDefs, ...fromSvcs.filter(l => !seen.has(l))];
+  }, [salon?.businessType, salon?.servedGender, grouped]);
 
-  const renderCategoryDetail = () => {
-    const catSvcs = grouped.find(([c]) => c === selectedCategory)?.[1] || [];
-    const isMaleOnly   = MALE_ONLY_CATS.includes(selectedCategory);
-    const isFemaleOnly = FEMALE_ONLY_CATS.includes(selectedCategory);
-    const showSplit    = isUnisex && !isMaleOnly && !isFemaleOnly;
-    const menSvcs   = showSplit ? catSvcs.filter(s => classifySvc(s) === 'male')   : [];
-    const womenSvcs = showSplit ? catSvcs.filter(s => classifySvc(s) === 'female') : [];
-    const bothSvcs  = showSplit ? catSvcs.filter(s => classifySvc(s) === 'both')   : [];
+  const subcategoriesForSelected = useMemo(() => {
+    if (!selectedCatLabel) return [];
+    const catDef = getCategoriesForSalonType(salon?.businessType, salon?.servedGender)
+      .find(d => d.label === selectedCatLabel);
+    return catDef?.sections?.length ? catDef.sections.map(sec => sec.label) : [];
+  }, [selectedCatLabel, salon?.businessType, salon?.servedGender]);
 
-    const renderCards = (list) => list.map(svc => (
-      <ServiceCard
-        key={svc._id}
-        service={svc}
-        theme={theme}
-        onEdit={s => { setEditingService(s); setModalVisible(true); }}
-        onDelete={handleDelete}
-        onToggle={handleToggleActive}
-      />
-    ));
-
-    if (catSvcs.length === 0) {
-      return (
-        <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons name="cut-outline" size={36} color="#a5b4fc" />
-          </View>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No services in this category</Text>
-          <Text style={[styles.emptyDesc, { color: theme.subText }]}>
-            {search ? `No results for "${search}"` : 'Add your first service to this category.'}
-          </Text>
-          {!!search && (
-            <TouchableOpacity onPress={() => setSearch('')} style={{ marginBottom: 12 }}>
-              <Text style={styles.clearSearchText}>Clear search</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.emptyBtn} onPress={() => { setEditingService(null); setModalVisible(true); }} activeOpacity={0.85}>
-            <Ionicons name="add" size={16} color="#fff" />
-            <Text style={styles.emptyBtnText}>Add Service</Text>
-          </TouchableOpacity>
-        </View>
-      );
+  const displayedServices = useMemo(() => {
+    let base = filteredServices;
+    if (selectedCatLabel) base = base.filter(s => s.category === selectedCatLabel);
+    if (selectedSubLabel && selectedCatLabel) {
+      const catDef = getCategoriesForSalonType(salon?.businessType, salon?.servedGender)
+        .find(d => d.label === selectedCatLabel);
+      const secDef = catDef?.sections?.find(s => s.label === selectedSubLabel);
+      if (secDef) {
+        const sectionNames = new Set(secDef.services);
+        const allSecNames  = new Set((catDef.sections || []).flatMap(s => s.services));
+        base = base.filter(s => sectionNames.has(s.name) || !allSecNames.has(s.name));
+      } else {
+        base = base.filter(s => s.name === selectedSubLabel);
+      }
     }
+    return base;
+  }, [filteredServices, selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender]);
 
-    if (!showSplit) return <View style={{ gap: 10 }}>{renderCards(catSvcs)}</View>;
+  const displayedGrouped = useMemo(() => {
+    const g = displayedServices.reduce((acc, svc) => {
+      const cat = svc.category || 'Other';
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(svc);
+      return acc;
+    }, {});
+    return Object.entries(g);
+  }, [displayedServices]);
 
-    return (
-      <View style={{ gap: 12 }}>
-        {bothSvcs.length > 0 && <View style={{ gap: 10 }}>{renderCards(bothSvcs)}</View>}
-        {menSvcs.length > 0 && (
-          <View>
-            <View style={styles.genderSeparator}>
-              <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Ionicons name="person-outline" size={10} color="#2563eb" /><Text style={styles.genderSepTextM}>Men</Text></View>
-              <View style={[styles.genderLine, { backgroundColor: '#bfdbfe' }]} />
-            </View>
-            <View style={{ gap: 10 }}>{renderCards(menSvcs)}</View>
-          </View>
-        )}
-        {womenSvcs.length > 0 && (
-          <View>
-            <View style={styles.genderSeparator}>
-              <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Ionicons name="woman-outline" size={10} color="#db2777" /><Text style={styles.genderSepTextF}>Women</Text></View>
-              <View style={[styles.genderLine, { backgroundColor: '#fbcfe8' }]} />
-            </View>
-            <View style={{ gap: 10 }}>{renderCards(womenSvcs)}</View>
-          </View>
-        )}
-      </View>
-    );
-  };
+  const handleCatSelect = (label) => { setSelectedCatLabel(label); setSelectedSubLabel(null); };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: 14 + insets.top, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={styles.headerRow}>
-          {selectedCategory ? (
-            <>
-              <TouchableOpacity onPress={() => setSelectedCategory(null)} style={styles.backBtn} activeOpacity={0.7}>
-                <Ionicons name="arrow-back" size={22} color={theme.text} />
-              </TouchableOpacity>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name={getCatIcon(selectedCategory)} size={18} color={theme.accent} />
-                  <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedCategory}</Text>
-                </View>
-                <Text style={[styles.headerSub, { color: theme.subText }]}>
-                  {grouped.find(([c]) => c === selectedCategory)?.[1].length ?? 0} services
-                </Text>
-              </View>
-              {(grouped.find(([c]) => c === selectedCategory)?.[1]?.length ?? 0) > 0 && (
-                <TouchableOpacity
-                  style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg, marginRight: 8 }]}
-                  onPress={() => setShowBulk(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="options-outline" size={14} color={theme.text} />
-                  <Text style={[styles.menuBtnText, { color: theme.text }]}>Bulk</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.addBtn}
-                onPress={() => { setEditingService(null); setModalVisible(true); }}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="add" size={16} color="#fff" />
-                <Text style={styles.addBtnText}>Add</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
+          {(
             <>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1135,13 +1119,57 @@ export default function ServicesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* Stats bar — only in categories view */}
-          {!selectedCategory && services.length > 0 && (
+          {/* Stats bar */}
+          {services.length > 0 && (
             <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
           )}
 
-          {/* Smart pricing suggestions — only in categories view */}
-          {!selectedCategory && activeSuggestions.length > 0 && (
+          {/* ── Level 1: category circles (like web CategoryNav) ── */}
+          {categoriesWithServices.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 6 }}>
+              <CircleButton label="All" isAll isSelected={!selectedCatLabel} onSelect={() => handleCatSelect(null)} />
+              {categoriesWithServices.map(label => (
+                <CircleButton key={label} label={label}
+                  imgSrc={getCatImg(label, salon, catalogMap)}
+                  isSelected={selectedCatLabel === label}
+                  onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
+              ))}
+            </ScrollView>
+          )}
+
+          {/* ── Level 2: subcategory circles ── */}
+          {selectedCatLabel && subcategoriesForSelected.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+              <CircleButton label="All" imgSrc={getCatImg(selectedCatLabel, salon, catalogMap)}
+                isSelected={!selectedSubLabel} onSelect={() => setSelectedSubLabel(null)} />
+              {subcategoriesForSelected.map(sub => (
+                <CircleButton key={sub} label={sub}
+                  imgSrc={getSubImg(selectedCatLabel, sub, salon, catalogMap)}
+                  isSelected={selectedSubLabel === sub}
+                  onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
+              ))}
+            </ScrollView>
+          )}
+
+          {/* ── Breadcrumb ── */}
+          {selectedCatLabel && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 2, marginTop: -6 }}>
+              <Ionicons name="chevron-forward" size={11} color={theme.subText} />
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.subText }}>{selectedCatLabel}</Text>
+              {selectedSubLabel && (
+                <>
+                  <Ionicons name="chevron-forward" size={11} color={theme.subText} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: theme.accent }}>{selectedSubLabel}</Text>
+                </>
+              )}
+              <Text style={{ marginLeft: 'auto', fontSize: 12, color: theme.subText }}>
+                {displayedServices.length} service{displayedServices.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* Smart pricing suggestions */}
+          {activeSuggestions.length > 0 && (
             <View style={[styles.smartCard, { backgroundColor: isDark ? 'rgba(16,185,129,0.10)' : '#ecfdf5', borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#a7f3d0' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <View style={styles.smartIcon}>
@@ -1169,8 +1197,8 @@ export default function ServicesScreen() {
             </View>
           )}
 
-          {/* View offered service categories toggle — only in categories view */}
-          {!selectedCategory && salon?.offeredCategories?.length > 0 && (
+          {/* View offered service categories toggle */}
+          {!selectedCatLabel && salon?.offeredCategories?.length > 0 && (
             <View style={{ gap: 10 }}>
               <TouchableOpacity
                 style={styles.menuToggleBtn}
@@ -1193,35 +1221,70 @@ export default function ServicesScreen() {
               <Ionicons name="search-outline" size={16} color={theme.subText} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder={selectedCategory ? `Search in ${selectedCategory}…` : 'Search services by name or category…'}
+                placeholder="Search services by name or category…"
                 placeholderTextColor={theme.subText}
                 value={search}
-                onChangeText={setSearch}
+                onChangeText={t => { setSearch(t); setSelectedCatLabel(null); setSelectedSubLabel(null); }}
               />
               {!!search && (
                 <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close-circle" size={16} color={theme.subText} />
                 </TouchableOpacity>
               )}
+              {selectedSubLabel && (
+                <TouchableOpacity onPress={() => setShowBulk(true)} style={[styles.menuBtn, { borderColor: 'rgba(99,102,241,0.4)', backgroundColor: 'rgba(99,102,241,0.08)' }]}>
+                  <Ionicons name="options-outline" size={13} color="#818cf8" />
+                  <Text style={[styles.menuBtnText, { color: '#818cf8' }]}>Bulk</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
-          {/* Content */}
+          {/* Content — services filtered by circles, grouped like web */}
           {services.length === 0 ? (
             <EmptyState onAdd={() => { setEditingService(null); setModalVisible(true); }} theme={theme} />
-          ) : selectedCategory ? (
-            renderCategoryDetail()
-          ) : grouped.length === 0 ? (
+          ) : displayedServices.length === 0 ? (
             <View style={styles.noResultsWrap}>
               <Ionicons name="search-outline" size={40} color={theme.border} />
-              <Text style={[styles.noResultsText, { color: theme.subText }]}>No services match "{search}"</Text>
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={styles.clearSearchText}>Clear search</Text>
-              </TouchableOpacity>
+              <Text style={[styles.noResultsText, { color: theme.subText }]}>
+                {search ? `No services match "${search}"` : 'No services here yet.'}
+              </Text>
+              {search ? (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Text style={styles.clearSearchText}>Clear search</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.emptyBtn} onPress={() => { setEditingService(null); setModalVisible(true); }} activeOpacity={0.85}>
+                  <Ionicons name="add" size={16} color="#fff" />
+                  <Text style={styles.emptyBtnText}>Add Service</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
-            <View style={{ gap: 10 }}>
-              {grouped.map(renderCategoryCard)}
+            <View style={{ gap: 12 }}>
+              {displayedGrouped.map(([cat, svcs]) => (
+                <View key={cat}>
+                  {!selectedCatLabel && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <Ionicons name={getCatIcon(cat)} size={14} color={theme.accent} />
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: theme.text }}>{cat}</Text>
+                      <Text style={{ fontSize: 11.5, color: theme.subText }}>· {svcs.length}</Text>
+                    </View>
+                  )}
+                  <View style={{ gap: 10 }}>
+                    {svcs.map(svc => (
+                      <ServiceCard
+                        key={svc._id}
+                        service={svc}
+                        theme={theme}
+                        onEdit={s => { setEditingService(s); setModalVisible(true); }}
+                        onDelete={handleDelete}
+                        onToggle={handleToggleActive}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))}
             </View>
           )}
         </ScrollView>
@@ -1241,13 +1304,13 @@ export default function ServicesScreen() {
           <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowBulk(false)} />
           <View style={[styles.bulkSheet, { backgroundColor: theme.bg }]}>
             <View style={styles.bulkHeader}>
-              <Text style={[styles.bulkTitle, { color: theme.text }]}>Bulk edit · {selectedCategory}</Text>
+              <Text style={[styles.bulkTitle, { color: theme.text }]}>Bulk edit · {selectedSubLabel || selectedCatLabel || 'All'}</Text>
               <TouchableOpacity onPress={() => setShowBulk(false)}>
                 <Ionicons name="close" size={22} color={theme.subText} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.bulkHint, { color: theme.subText }]}>
-              Applies to all {grouped.find(([c]) => c === selectedCategory)?.[1]?.length ?? 0} services in this category. Enable only the fields you want to change.
+              Applies to all {displayedServices.length} services shown. Enable only the fields you want to change.
             </Text>
 
             <ScrollView keyboardShouldPersistTaps="handled">

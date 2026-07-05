@@ -1001,6 +1001,113 @@ const ph = StyleSheet.create({
   del:   { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 4 },
 });
 
+/* ─── Calendar date-picker modal (tap a date, like the website) ── */
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEK_LABELS = ['S','M','T','W','T','F','S'];
+
+function toISO(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+// YYYY-MM-DD → DD/MM/YYYY for display
+function toDDMMYYYY(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function CalendarModal({ visible, value, onSelect, onClose, minToday = true }) {
+  const { theme } = useTheme();
+  const now = new Date();
+  const init = value ? new Date(value + 'T12:00:00') : now;
+  const [viewYear, setViewYear]   = useState(init.getFullYear());
+  const [viewMonth, setViewMonth] = useState(init.getMonth());
+
+  useEffect(() => {
+    if (!visible) return;
+    const d = value ? new Date(value + 'T12:00:00') : new Date();
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  }, [visible]);
+
+  const firstDow  = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMon = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const todayISO  = toISO(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const cells = [
+    ...Array.from({ length: firstDow }, () => null),
+    ...Array.from({ length: daysInMon }, (_, i) => i + 1),
+  ];
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={sh.pickerOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={[cal.sheet, { backgroundColor: theme.card }]}>
+          {/* Month header */}
+          <View style={cal.header}>
+            <TouchableOpacity onPress={prevMonth} style={cal.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="chevron-back" size={18} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[cal.headerTitle, { color: theme.text }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+            <TouchableOpacity onPress={nextMonth} style={cal.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="chevron-forward" size={18} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Week labels */}
+          <View style={cal.weekRow}>
+            {WEEK_LABELS.map((w, i) => (
+              <Text key={i} style={[cal.weekLabel, { color: theme.subText }]}>{w}</Text>
+            ))}
+          </View>
+
+          {/* Day grid */}
+          <View style={cal.grid}>
+            {cells.map((day, i) => {
+              if (day === null) return <View key={`e${i}`} style={cal.cell} />;
+              const iso      = toISO(viewYear, viewMonth, day);
+              const disabled = minToday && iso < todayISO;
+              const selected = value === iso;
+              const isToday  = iso === todayISO;
+              return (
+                <TouchableOpacity
+                  key={iso}
+                  style={[cal.cell, selected && cal.cellSelected, !selected && isToday && cal.cellToday]}
+                  disabled={disabled}
+                  onPress={() => { onSelect(iso); onClose(); }}
+                >
+                  <Text style={[
+                    cal.cellText,
+                    { color: disabled ? theme.placeholder : selected ? '#fff' : isToday ? '#818cf8' : theme.text },
+                    (selected || isToday) && { fontWeight: '800' },
+                  ]}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+const cal = StyleSheet.create({
+  sheet:        { borderRadius: 18, padding: 16 },
+  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerTitle:  { fontSize: 15, fontWeight: '800' },
+  navBtn:       { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(128,128,160,0.12)' },
+  weekRow:      { flexDirection: 'row', marginBottom: 4 },
+  weekLabel:    { width: `${100 / 7}%`, textAlign: 'center', fontSize: 11, fontWeight: '700' },
+  grid:         { flexDirection: 'row', flexWrap: 'wrap' },
+  cell:         { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 99 },
+  cellSelected: { backgroundColor: '#6366f1' },
+  cellToday:    { borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.5)' },
+  cellText:     { fontSize: 13.5 },
+});
+
 /* ─── 9. Closed Dates / Holidays ───────────────────────────────── */
 function ClosedDatesSection() {
   const { theme } = useTheme();
@@ -1009,6 +1116,7 @@ function ClosedDatesSection() {
   const [newReason, setNewReason] = useState('');
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [showCal, setShowCal] = useState(false);
 
   useEffect(() => {
     api.get('/owner/salon')
@@ -1017,7 +1125,7 @@ function ClosedDatesSection() {
   }, []);
 
   const handleAdd = async () => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { showError('Invalid date', 'Use YYYY-MM-DD format, e.g. 2026-08-15'); return; }
+    if (!newDate) { showError('Pick a date', 'Tap the date field and choose a day from the calendar'); return; }
     setAdding(true);
     try {
       const res = await api.post('/owner/salon/holidays', { date: newDate, reason: newReason.trim() });
@@ -1048,16 +1156,30 @@ function ClosedDatesSection() {
 
       <View style={[cd.addCard, { backgroundColor: theme.cardAlt, borderColor: theme.rowBorder }]}>
         <Text style={[cd.addTitle, { color: theme.text }]}>Add Closed Date</Text>
-        <LabelInput label="Date" value={newDate} onChange={setNewDate} placeholder="YYYY-MM-DD (e.g. 2026-08-15)" keyboard="numbers-and-punctuation" disabled={adding} />
+        <View style={{ marginBottom: 13 }}>
+          <Text style={[sh.inpLabel, { color: theme.subText }]}>Date</Text>
+          <TouchableOpacity
+            style={[sh.inp, sh.selectRow, { backgroundColor: theme.input, borderColor: theme.inputBorder }]}
+            onPress={() => setShowCal(true)} disabled={adding} activeOpacity={0.75}
+          >
+            <Text style={{ fontSize: 14, color: newDate ? theme.text : theme.placeholder }}>
+              {newDate ? toDDMMYYYY(newDate) : 'DD/MM/YYYY — tap to pick'}
+            </Text>
+            <Ionicons name="calendar-outline" size={16} color={theme.subText} />
+          </TouchableOpacity>
+        </View>
         <LabelInput label="Reason (optional)" value={newReason} onChange={setNewReason} placeholder="e.g. Diwali, Owner holiday" disabled={adding} />
         <PrimaryBtn label="Add Closed Date" icon="add" onPress={handleAdd} loading={adding} />
       </View>
+
+      <CalendarModal visible={showCal} value={newDate} onSelect={setNewDate} onClose={() => setShowCal(false)} />
 
       {holidays.length === 0 ? (
         <Text style={{ fontSize: 13, color: theme.placeholder, textAlign: 'center', paddingVertical: 12 }}>No closed dates set.</Text>
       ) : (
         [...holidays].sort((x, y) => new Date(x.date) - new Date(y.date)).map(h => {
-          const dateStr = new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+          const d = new Date(h.date);
+          const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
           return (
             <View key={h._id} style={cd.row}>
               <View style={{ flex: 1 }}>
