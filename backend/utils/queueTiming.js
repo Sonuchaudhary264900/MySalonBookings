@@ -129,10 +129,12 @@ async function sendDelayNotification(booking, delayMinutes) {
     ).catch(() => {});
   }
 
-  if (customer?.phone) {
+  // Walk-ins have no linked account — fall back to the booking's phone
+  const delayPhone = customer?.phone || booking.customerPhone;
+  if (delayPhone) {
     sendDelayAlert({
-      phone: customer.phone,
-      customerName: customer.name || 'there',
+      phone: delayPhone,
+      customerName: customer?.name || booking.customerName || 'there',
       serviceName: booking.serviceName || 'your appointment',
       salonName: booking.salonName,
       originalTime: booking.appointmentTime,

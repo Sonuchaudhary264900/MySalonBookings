@@ -164,10 +164,12 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
           ).catch(() => {});
         }
 
-        if (booking.customerId?.phone) {
+        // Walk-ins have no linked account — fall back to the booking's phone
+        const reminderPhone1h = booking.customerId?.phone || booking.customerPhone;
+        if (reminderPhone1h) {
           sendReminder1h({
-            phone: booking.customerId.phone,
-            customerName: booking.customerId.name || 'there',
+            phone: reminderPhone1h,
+            customerName: booking.customerId?.name || booking.customerName || 'there',
             serviceName: booking.serviceName || 'your appointment',
             salonName: booking.salonName,
             time: effectiveTime,
@@ -727,10 +729,12 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
           );
         }
 
-        if (booking.customerId?.phone) {
+        // Walk-ins have no linked account — fall back to the booking's phone
+        const reminderPhone10 = booking.customerId?.phone || booking.customerPhone;
+        if (reminderPhone10) {
           sendReminder10min({
-            phone: booking.customerId.phone,
-            customerName: booking.customerId.name || 'there',
+            phone: reminderPhone10,
+            customerName: booking.customerId?.name || booking.customerName || 'there',
             serviceName: booking.serviceName || 'your appointment',
             salonName: booking.salonName,
             time: effectiveTime,

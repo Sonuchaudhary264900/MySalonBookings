@@ -1960,6 +1960,22 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
     }
   } catch {}
 
+  // WhatsApp confirmation to the walk-in customer's number (they have no
+  // account, so this is the only message they'd get at booking time).
+  try {
+    const { sendBookingConfirmation } = require("../utils/whatsapp");
+    if (booking.customerPhone) {
+      sendBookingConfirmation({
+        phone:       booking.customerPhone,
+        customerName: booking.customerName || "there",
+        salonName:   salon.name,
+        serviceName: service.name,
+        date:        appointmentDate,
+        time:        appointmentTime,
+      }).catch(() => {});
+    }
+  } catch {}
+
   res.status(201).json({ success: true, data: booking });
 }));
 
