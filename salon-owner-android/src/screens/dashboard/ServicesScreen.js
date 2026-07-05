@@ -35,15 +35,24 @@ const getSubImg = (catLabel, subLabel, salon, catalogMap) => {
 };
 
 // ── CircleButton — RN port of the website's 54px category circle ──
-function CircleButton({ label, imgSrc, isSelected, isAll, onSelect }) {
+function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSelect, onLongPress }) {
   const { theme } = useTheme();
   const [broken, setBroken] = useState(false);
-  const showImg = !isAll && !!imgSrc && !broken;
+  const showImg = !isAll && !isAdd && !!imgSrc && !broken;
   return (
-    <TouchableOpacity onPress={onSelect} activeOpacity={0.8}
-      style={{ alignItems: 'center', paddingHorizontal: 8, opacity: isSelected ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
-      <View style={[cb.circle, isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' }, !showImg && !isAll && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt }]}>
-        {isAll ? (
+    <TouchableOpacity onPress={onSelect} onLongPress={onLongPress} delayLongPress={450} activeOpacity={0.8}
+      style={{ alignItems: 'center', paddingHorizontal: 8, opacity: isSelected || isAdd ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
+      <View style={[
+        cb.circle,
+        isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' },
+        !showImg && !isAll && !isAdd && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt },
+        isAdd && { backgroundColor: 'rgba(99,102,241,0.08)', borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(129,140,248,0.55)' },
+      ]}>
+        {uploading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : isAdd ? (
+          <Ionicons name="add" size={26} color="#818cf8" />
+        ) : isAll ? (
           <Ionicons name="grid-outline" size={21} color="#fff" />
         ) : showImg ? (
           <Image source={{ uri: imgSrc }} style={{ width: '100%', height: '100%' }} onError={() => setBroken(true)} />
@@ -51,7 +60,7 @@ function CircleButton({ label, imgSrc, isSelected, isAll, onSelect }) {
           <Text style={{ fontSize: 18, fontWeight: '800', color: isSelected ? '#fff' : theme.subText }}>{label.charAt(0)}</Text>
         )}
       </View>
-      <Text numberOfLines={2} style={[cb.label, { color: isSelected ? theme.accent : theme.subText, fontWeight: isSelected ? '800' : '600' }]}>{label}</Text>
+      <Text numberOfLines={2} style={[cb.label, { color: isAdd ? '#818cf8' : isSelected ? theme.accent : theme.subText, fontWeight: isSelected || isAdd ? '800' : '600' }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -865,7 +874,7 @@ export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation();
-  const { salon } = useSalon();
+  const { salon, updateSalon } = useSalon();
 
   const [services, setServices]         = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -1072,6 +1081,61 @@ export default function ServicesScreen() {
 
   const handleCatSelect = (label) => { setSelectedCatLabel(label); setSelectedSubLabel(null); };
 
+  // Long-press a circle -> pick an image -> save to salon.categoryImages
+  // (key = category label, or "Cat::Sub" for subcategories — same as web)
+  const [circleUploading, setCircleUploading] = useState({});
+  const handleCircleImage = async (key) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { showError('Permission denied', 'Gallery access is required'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85, allowsEditing: true, aspect: [1, 1] });
+    if (result.canceled) return;
+    setCircleUploading(prev => ({ ...prev, [key]: true }));
+    try {
+      const sigRes = await api.get('/owner/gallery/upload-signature?resource_type=image');
+      const { signature, timestamp, api_key, cloud_name, folder } = sigRes.data.data;
+      const fd = new FormData();
+      fd.append('file', { uri: result.assets[0].uri, type: 'image/jpeg', name: 'circle.jpg' });
+      fd.append('signature', signature);
+      fd.append('timestamp', String(timestamp));
+      fd.append('api_key', api_key);
+      fd.append('folder', folder);
+      const up = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, { method: 'POST', body: fd });
+      const data = await up.json();
+      if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
+      await updateSalon({ categoryImages: { ...(salon?.categoryImages || {}), [key]: data.secure_url } });
+      showSuccess('Image updated', 'Circle photo saved — visible to customers too');
+    } catch (err) {
+      showError('Error', err.message || 'Failed to upload image');
+    } finally {
+      setCircleUploading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Open the Add Service modal prefilled from the catalog (no _id -> create)
+  const openAddPrefilled = (name, category) => {
+    setEditingService(name || category ? { name: name || '', category: category || '' } : null);
+    setModalVisible(true);
+  };
+
+  // Catalog suggestions for the current selection: menu services not yet added
+  const catalogSuggestions = useMemo(() => {
+    if (!selectedCatLabel) return [];
+    const catDef = getCategoriesForSalonType(salon?.businessType, salon?.servedGender)
+      .find(d => d.label === selectedCatLabel);
+    if (!catDef) return [];
+    let names = [];
+    if (selectedSubLabel) {
+      const secDef = catDef.sections?.find(sec => sec.label === selectedSubLabel);
+      names = secDef ? secDef.services : [];
+    } else if (catDef.sections?.length) {
+      names = catDef.sections.flatMap(sec => sec.services);
+    } else {
+      names = catDef.subServices || [];
+    }
+    const owned = new Set(services.filter(sv => sv.category === selectedCatLabel).map(sv => sv.name));
+    return [...new Set(names)].filter(n => !owned.has(n));
+  }, [selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender, services]);
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
@@ -1089,14 +1153,6 @@ export default function ServicesScreen() {
                 <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your business services and pricing</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={[styles.menuBtn, { borderColor: theme.border, backgroundColor: theme.bg }]}
-                  onPress={() => navigation.navigate('ServiceMenu')}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="list-outline" size={14} color={theme.text} />
-                  <Text style={[styles.menuBtnText, { color: theme.text }]}>Service Menu</Text>
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.addBtn}
                   onPress={() => { setEditingService(null); setModalVisible(true); }}
@@ -1132,8 +1188,11 @@ export default function ServicesScreen() {
                 <CircleButton key={label} label={label}
                   imgSrc={getCatImg(label, salon, catalogMap)}
                   isSelected={selectedCatLabel === label}
+                  uploading={!!circleUploading[label]}
+                  onLongPress={() => handleCircleImage(label)}
                   onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
               ))}
+              <CircleButton label="Add" isAdd onSelect={() => openAddPrefilled('', '')} />
             </ScrollView>
           )}
 
@@ -1146,8 +1205,11 @@ export default function ServicesScreen() {
                 <CircleButton key={sub} label={sub}
                   imgSrc={getSubImg(selectedCatLabel, sub, salon, catalogMap)}
                   isSelected={selectedSubLabel === sub}
+                  uploading={!!circleUploading[`${selectedCatLabel}::${sub}`]}
+                  onLongPress={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
                   onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
               ))}
+              <CircleButton label="Add" isAdd onSelect={() => openAddPrefilled('', selectedCatLabel)} />
             </ScrollView>
           )}
 
@@ -1197,24 +1259,6 @@ export default function ServicesScreen() {
             </View>
           )}
 
-          {/* View offered service categories toggle */}
-          {!selectedCatLabel && salon?.offeredCategories?.length > 0 && (
-            <View style={{ gap: 10 }}>
-              <TouchableOpacity
-                style={styles.menuToggleBtn}
-                onPress={() => setShowMenuSection(v => !v)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="sparkles-outline" size={12} color="#6366f1" />
-                <Text style={styles.menuToggleText}>
-                  {showMenuSection ? 'Hide' : 'View'} offered service categories
-                </Text>
-                <Ionicons name={showMenuSection ? 'chevron-up' : 'chevron-down'} size={13} color="#6366f1" />
-              </TouchableOpacity>
-              {showMenuSection && <ServiceMenuSection salon={salon} theme={theme} />}
-            </View>
-          )}
-
           {/* Search bar */}
           {services.length > 0 && (
             <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -1241,9 +1285,9 @@ export default function ServicesScreen() {
           )}
 
           {/* Content — services filtered by circles, grouped like web */}
-          {services.length === 0 ? (
+          {services.length === 0 && !selectedCatLabel ? (
             <EmptyState onAdd={() => { setEditingService(null); setModalVisible(true); }} theme={theme} />
-          ) : displayedServices.length === 0 ? (
+          ) : displayedServices.length === 0 && catalogSuggestions.length === 0 ? (
             <View style={styles.noResultsWrap}>
               <Ionicons name="search-outline" size={40} color={theme.border} />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -1285,6 +1329,37 @@ export default function ServicesScreen() {
                   </View>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Catalog suggestions — menu services the owner hasn't added yet */}
+          {catalogSuggestions.length > 0 && (
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Ionicons name="sparkles-outline" size={13} color="#818cf8" />
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: theme.text }}>
+                  From your service menu
+                </Text>
+                <Text style={{ fontSize: 11.5, color: theme.subText }}>· tap + to add with price</Text>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {catalogSuggestions.map(name => (
+                  <TouchableOpacity
+                    key={name}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(129,140,248,0.45)',
+                      backgroundColor: 'rgba(99,102,241,0.06)',
+                      borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12,
+                    }}
+                    onPress={() => openAddPrefilled(name, selectedCatLabel)}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="add-circle" size={16} color="#818cf8" />
+                    <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.text }}>{name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
         </ScrollView>
