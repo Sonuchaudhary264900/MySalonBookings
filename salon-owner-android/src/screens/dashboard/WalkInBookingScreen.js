@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
@@ -62,6 +62,7 @@ export default function WalkInBookingScreen() {
   const [allSlots, setAllSlots] = useState([]);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [bookingMode, setBookingMode] = useState('flexible');
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -86,22 +87,30 @@ export default function WalkInBookingScreen() {
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
   // Fetch available slots for the current date + service
-  const refetchSlots = useCallback((keepTime = false) => {
+  const refetchSlots = useCallback(() => {
     if (!salon?._id || !selectedDate) return;
     const duration = selectedService?.duration || 30;
     setSlotsLoading(true);
-    if (!keepTime) setSelectedTime('');
+    setSelectedTime('');
     api.get(`/public/salons/${salon._id}/booked-slots?date=${selectedDate}&duration=${duration}`)
       .then(res => {
         const d = res.data.data || {};
-        setAllSlots(d.slots || []);
+        const mode = d.bookingMode || 'flexible';
+        const slots = d.slots || [];
+        setBookingMode(mode);
+        setAllSlots(slots);
         setBookedSlots(d.blockedSlots || []);
+        // Sequential (queue) mode returns exactly one "next available" slot —
+        // auto-select it so the owner just confirms, no hunting.
+        if (mode === 'sequential' && slots.length === 1) setSelectedTime(slots[0]);
       })
       .catch(() => { setAllSlots([]); setBookedSlots([]); })
       .finally(() => setSlotsLoading(false));
   }, [salon?._id, selectedDate, selectedService]);
 
   useEffect(() => { refetchSlots(); }, [refetchSlots]);
+  // Always show fresh availability when the screen regains focus
+  useFocusEffect(useCallback(() => { refetchSlots(); }, [refetchSlots]));
 
   const formatDisplayDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
@@ -288,17 +297,40 @@ export default function WalkInBookingScreen() {
             </ScrollView>
           </View>
 
-          {/* Time Slot — grouped Morning / Afternoon / Evening with AM/PM labels */}
+          {/* Time Slot */}
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Time Slot</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {bookingMode === 'sequential' ? 'Next Available Slot' : 'Time Slot'}
+            </Text>
             {slotsLoading ? (
               <View style={styles.slotGrid}>
-                {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} w={82} h={36} r={8} />)}
+                {Array.from({ length: bookingMode === 'sequential' ? 1 : 8 }).map((_, i) => <Skeleton key={i} w={bookingMode === 'sequential' ? 200 : 82} h={bookingMode === 'sequential' ? 54 : 36} r={12} />)}
               </View>
             ) : visibleSlots.length === 0 ? (
               <Text style={{ color: theme.subText, fontSize: 13, textAlign: 'center', paddingVertical: 8 }}>
-                {selectedDate === todayStr() ? 'No more slots today — try tomorrow' : 'No slots for this date'}
+                {selectedDate === todayStr() ? 'No more slots today — try tomorrow' : 'Fully booked for this date — try another day'}
               </Text>
+            ) : bookingMode === 'sequential' ? (
+              // Queue mode: one auto-selected "next available" card
+              <>
+                <TouchableOpacity
+                  style={[styles.seqCard, { borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.12)' }]}
+                  activeOpacity={0.9}
+                  onPress={() => setSelectedTime(visibleSlots[0])}
+                >
+                  <View style={styles.seqIcon}><Ionicons name="time" size={20} color="#fff" /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.seqTime, { color: theme.text }]}>{fmt12(visibleSlots[0])}</Text>
+                    <Text style={{ fontSize: 11.5, color: theme.subText, marginTop: 1 }}>
+                      Next free slot in your queue{selectedService ? ` · ${selectedService.duration || 30} min` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name={selectedTime === visibleSlots[0] ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={selectedTime === visibleSlots[0] ? '#6366f1' : theme.subText} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 11, color: theme.subText, marginTop: 8 }}>
+                  In queue mode, each booking takes the next open time automatically.
+                </Text>
+              </>
             ) : (
               groupSlots(visibleSlots).map(([label, slots]) => (
                 <View key={label} style={{ marginBottom: 6 }}>
@@ -392,6 +424,9 @@ const styles = StyleSheet.create({
   dateChipText: { fontSize: 13, fontWeight: '600' },
   slotGroupLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  seqCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  seqIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  seqTime: { fontSize: 18, fontWeight: '800' },
   slot: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
   slotActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   slotBooked: { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)' },
