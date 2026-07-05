@@ -18,19 +18,20 @@ import {
 } from '../../data/salonCategoriesFull';
 
 // ── Category circle images — same resolution order as the website ──
+const isUrl = (v) => typeof v === 'string' && /^https?:\/\//i.test(v);
 const getCatImg = (label, salon, catalogMap) => {
   const saved = salon?.categoryImages;
-  if (saved && saved[label]) return saved[label];
-  if (catalogMap?.categoryImages?.[label]) return catalogMap.categoryImages[label];
+  if (saved && isUrl(saved[label])) return saved[label];
+  if (isUrl(catalogMap?.categoryImages?.[label])) return catalogMap.categoryImages[label];
   return CATEGORY_CARD_IMAGE_MAP[label] || null;
 };
 
 const getSubImg = (catLabel, subLabel, salon, catalogMap) => {
   const key = `${catLabel}::${subLabel}`;
   const saved = salon?.categoryImages;
-  if (saved && saved[key]) return saved[key];
-  if (catalogMap?.subCategoryImages?.[subLabel]) return catalogMap.subCategoryImages[subLabel];
-  if (catalogMap?.serviceImages?.[subLabel]) return catalogMap.serviceImages[subLabel];
+  if (saved && isUrl(saved[key])) return saved[key];
+  if (isUrl(catalogMap?.subCategoryImages?.[subLabel])) return catalogMap.subCategoryImages[subLabel];
+  if (isUrl(catalogMap?.serviceImages?.[subLabel])) return catalogMap.serviceImages[subLabel];
   return SUBCATEGORY_IMAGE_MAP[subLabel] || null;
 };
 
@@ -41,7 +42,7 @@ function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSe
   const showImg = !isAll && !isAdd && !!imgSrc && !broken;
   return (
     <TouchableOpacity onPress={onSelect} onLongPress={onLongPress} delayLongPress={450} activeOpacity={0.8}
-      style={{ alignItems: 'center', paddingHorizontal: 8, opacity: isSelected || isAdd ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
+      style={{ alignItems: 'center', paddingHorizontal: 5, opacity: isSelected || isAdd ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
       <View style={[
         cb.circle,
         isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' },
@@ -66,7 +67,7 @@ function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSe
 }
 const cb = StyleSheet.create({
   circle: {
-    width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
+    width: 68, height: 68, borderRadius: 34, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#4f46e5', borderWidth: 1.5,
   },
@@ -74,8 +75,138 @@ const cb = StyleSheet.create({
     borderWidth: 3, borderColor: '#818cf8',
     shadowColor: '#6366f1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
-  label: { fontSize: 10.5, marginTop: 5, textAlign: 'center', maxWidth: 68 },
+  label: { fontSize: 11, marginTop: 5, textAlign: 'center', maxWidth: 82 },
 });
+
+// Derive who a service is for, from its category label (category defines gender)
+function genderForCategory(catLabel, salon) {
+  if (/\(men\)/i.test(catLabel) || /\bmen\b/i.test(catLabel) || /beard|barber/i.test(catLabel)) return ['male'];
+  if (/\(women\)/i.test(catLabel) || /\bwomen\b/i.test(catLabel) || /bridal|ladies/i.test(catLabel)) return ['female'];
+  if (salon?.servedGender === 'male') return ['male'];
+  if (salon?.servedGender === 'female') return ['female'];
+  return ['male', 'female'];
+}
+
+// ── Menu-style row: round photo · name · sub-line · toggle ─────────
+function MenuServiceRow({ img, name, subline, value, disabled, onToggle, onPress, onLongPress, uploading }) {
+  const { theme } = useTheme();
+  const [broken, setBroken] = useState(false);
+  return (
+    <TouchableOpacity activeOpacity={onPress ? 0.7 : 1} onPress={onPress} onLongPress={onLongPress} delayLongPress={450}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 12 }}>
+      <View style={{ width: 46, height: 46, borderRadius: 23, overflow: 'hidden', backgroundColor: theme.cardAlt, alignItems: 'center', justifyContent: 'center' }}>
+        {uploading ? (
+          <ActivityIndicator size="small" color="#818cf8" />
+        ) : img && !broken ? (
+          <Image source={{ uri: img }} style={{ width: '100%', height: '100%' }} onError={() => setBroken(true)} />
+        ) : (
+          <Text style={{ fontSize: 17, fontWeight: '800', color: theme.subText }}>{(name || '?').charAt(0)}</Text>
+        )}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '700', color: theme.text }}>{name}</Text>
+        {!!subline && <Text numberOfLines={1} style={{ fontSize: 11.5, color: theme.subText, marginTop: 2 }}>{subline}</Text>}
+      </View>
+      <Switch
+        value={value}
+        disabled={disabled}
+        onValueChange={onToggle}
+        trackColor={{ false: 'rgba(128,128,160,0.3)', true: 'rgba(99,102,241,0.6)' }}
+        thumbColor={value ? '#6366f1' : '#9ca3af'}
+      />
+    </TouchableOpacity>
+  );
+}
+
+// Flat wide "+ Add" button under a group — like the reference design
+function FlatAddButton({ label, onPress }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}
+      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(129,140,248,0.5)', backgroundColor: 'rgba(99,102,241,0.06)', borderRadius: 16, paddingVertical: 13 }}>
+      <Ionicons name="add-circle" size={18} color="#818cf8" />
+      <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#818cf8' }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// Toggle a service ON: just price & time, then it goes live
+function QuickAddModal({ visible, title, initialPrice, initialDuration, onClose, onSave, saving }) {
+  const { theme } = useTheme();
+  const [price, setPrice]       = useState('');
+  const [duration, setDuration] = useState('30');
+  useEffect(() => {
+    if (visible) { setPrice(initialPrice != null ? String(initialPrice) : ''); setDuration(initialDuration != null ? String(initialDuration) : '30'); }
+  }, [visible]);
+  const valid = price !== '' && Number(price) >= 0 && Number(duration) >= 1;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
+        <View style={{ backgroundColor: theme.card, borderRadius: 20, padding: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>{title}</Text>
+          <Text style={{ fontSize: 12.5, color: theme.subText, marginTop: 2, marginBottom: 16 }}>Set the price and time — then customers can book it</Text>
+          <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Price (₹) *</Text>
+          <TextInput value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="e.g. 200" placeholderTextColor={theme.placeholder}
+            style={{ borderWidth: 1.5, borderColor: theme.inputBorder, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 15, color: theme.text, backgroundColor: theme.input, marginBottom: 12 }} autoFocus />
+          <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Time (minutes) *</Text>
+          <TextInput value={duration} onChangeText={setDuration} keyboardType="numeric" placeholder="30" placeholderTextColor={theme.placeholder}
+            style={{ borderWidth: 1.5, borderColor: theme.inputBorder, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 15, color: theme.text, backgroundColor: theme.input, marginBottom: 18 }} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={onClose} style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: theme.inputBorder, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 13.5, fontWeight: '600', color: theme.subText }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => valid && onSave(Number(price), Number(duration))} disabled={!valid || saving}
+              style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', opacity: valid && !saving ? 1 : 0.5 }}>
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '800' }}>Save</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// Round + circle → create a category or subcategory with name + image
+function CreateBucketModal({ visible, kind, onClose, onCreate, creating }) {
+  const { theme } = useTheme();
+  const [name, setName]     = useState('');
+  const [imgUri, setImgUri] = useState(null);
+  useEffect(() => { if (visible) { setName(''); setImgUri(null); } }, [visible]);
+  const pick = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { showError('Permission denied', 'Gallery access is required'); return; }
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85, allowsEditing: true, aspect: [1, 1] });
+    if (!r.canceled) setImgUri(r.assets[0].uri);
+  };
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
+        <View style={{ backgroundColor: theme.card, borderRadius: 20, padding: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 14 }}>
+            New {kind === 'category' ? 'Category' : 'Service'}
+          </Text>
+          <TouchableOpacity onPress={pick} activeOpacity={0.8} style={{ alignSelf: 'center', marginBottom: 14 }}>
+            <View style={{ width: 84, height: 84, borderRadius: 42, overflow: 'hidden', backgroundColor: theme.cardAlt, borderWidth: 2, borderStyle: imgUri ? 'solid' : 'dashed', borderColor: 'rgba(129,140,248,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+              {imgUri ? <Image source={{ uri: imgUri }} style={{ width: '100%', height: '100%' }} /> : <Ionicons name="camera-outline" size={26} color="#818cf8" />}
+            </View>
+            <Text style={{ fontSize: 11, color: '#818cf8', fontWeight: '700', textAlign: 'center', marginTop: 5 }}>{imgUri ? 'Change photo' : 'Add photo (optional)'}</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Name *</Text>
+          <TextInput value={name} onChangeText={setName} placeholder={kind === 'category' ? 'e.g. Nail Art' : 'e.g. Premium Haircut'} placeholderTextColor={theme.placeholder}
+            style={{ borderWidth: 1.5, borderColor: theme.inputBorder, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 15, color: theme.text, backgroundColor: theme.input, marginBottom: 18 }} autoFocus />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={onClose} style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: theme.inputBorder, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 13.5, fontWeight: '600', color: theme.subText }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => name.trim() && onCreate(name.trim(), imgUri)} disabled={!name.trim() || creating}
+              style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', opacity: name.trim() && !creating ? 1 : 0.5 }}>
+              {creating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '800' }}>Create</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 // ── Category constants ──────────────────────────────────────────
 const CATEGORY_ORDER = [
@@ -895,6 +1026,10 @@ export default function ServicesScreen() {
   const [bulkActive,   setBulkActive]   = useState(true);
   const [bulkGender,   setBulkGender]   = useState('both');
   const [bulkSaving,   setBulkSaving]   = useState(false);
+  const [quickAdd,     setQuickAdd]     = useState(null); // { name, category, existing } | null
+  const [quickSaving,  setQuickSaving]  = useState(false);
+  const [createBucket, setCreateBucket] = useState(null); // { kind } | null
+  const [bucketSaving, setBucketSaving] = useState(false);
 
   const toggleBulkField = (key) => setBulkEnabled(prev => {
     const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
@@ -1136,6 +1271,135 @@ export default function ServicesScreen() {
     return [...new Set(names)].filter(n => !owned.has(n));
   }, [selectedCatLabel, selectedSubLabel, salon?.businessType, salon?.servedGender, services]);
 
+  // ── Menu-driven data ────────────────────────────────────────────
+  const customCats = useMemo(
+    () => Object.keys(salon?.categoryImages || {}).filter(k => !k.includes('::')),
+    [salon?.categoryImages]
+  );
+  const allCategories = useMemo(() => {
+    const seen = new Set(); const out = [];
+    [...categoriesWithServices, ...customCats].forEach(c => { if (c && !seen.has(c)) { seen.add(c); out.push(c); } });
+    return out;
+  }, [categoriesWithServices, customCats]);
+
+  // Every menu item (service name) for a category
+  const menuNamesForCat = useCallback((catLabel) => {
+    const def = getCategoriesForSalonType(salon?.businessType, salon?.servedGender).find(d => d.label === catLabel);
+    let names = [];
+    if (def?.sections?.length) names = def.sections.flatMap(sec => sec.services);
+    else if (def?.subServices) names = def.subServices;
+    const customSubs = Object.keys(salon?.categoryImages || {})
+      .filter(k => k.startsWith(catLabel + '::')).map(k => k.slice(catLabel.length + 2));
+    const ownerNames = services.filter(sv => sv.category === catLabel).map(sv => sv.name);
+    const seen = new Set(); const out = [];
+    [...names, ...customSubs, ...ownerNames].forEach(n => { if (n && !seen.has(n)) { seen.add(n); out.push(n); } });
+    return out;
+  }, [salon, services]);
+
+  const serviceByNameCat = useCallback(
+    (name, cat) => services.find(sv => sv.category === cat && sv.name === name),
+    [services]
+  );
+  const activeCountInCat = useCallback(
+    (cat) => services.filter(sv => sv.category === cat && sv.isActive !== false).length,
+    [services]
+  );
+
+  // Names to show inside the current category (respecting section + search)
+  const menuNamesShown = useMemo(() => {
+    if (!selectedCatLabel) return [];
+    let names = menuNamesForCat(selectedCatLabel);
+    if (selectedSubLabel) {
+      const def = getCategoriesForSalonType(salon?.businessType, salon?.servedGender).find(d => d.label === selectedCatLabel);
+      const sec = def?.sections?.find(x => x.label === selectedSubLabel);
+      if (sec) { const set = new Set(sec.services); names = names.filter(n => set.has(n)); }
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      names = names.filter(n => n.toLowerCase().includes(q));
+    }
+    return names;
+  }, [selectedCatLabel, selectedSubLabel, menuNamesForCat, search, salon?.businessType, salon?.servedGender]);
+
+  const uploadImage = async (uri) => {
+    const sigRes = await api.get('/owner/gallery/upload-signature?resource_type=image');
+    const { signature, timestamp, api_key, cloud_name, folder } = sigRes.data.data;
+    const fd = new FormData();
+    fd.append('file', { uri, type: 'image/jpeg', name: 'circle.jpg' });
+    fd.append('signature', signature); fd.append('timestamp', String(timestamp));
+    fd.append('api_key', api_key); fd.append('folder', folder);
+    const up = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, { method: 'POST', body: fd });
+    const data = await up.json();
+    if (!data.secure_url) throw new Error(data.error?.message || 'Upload failed');
+    return data.secure_url;
+  };
+
+  // Toggle a service row on/off (create when turning on and not yet added)
+  const handleRowToggle = (name, cat, on) => {
+    const existing = serviceByNameCat(name, cat);
+    if (on) {
+      if (existing) handleToggleActive(existing._id, true);
+      else setQuickAdd({ name, category: cat, existing: null });
+    } else if (existing) {
+      handleToggleActive(existing._id, false);
+    }
+  };
+  const handleRowPress = (name, cat) => {
+    const existing = serviceByNameCat(name, cat);
+    setQuickAdd({ name, category: cat, existing: existing || null });
+  };
+  const handleQuickSave = async (price, duration) => {
+    if (!quickAdd) return;
+    setQuickSaving(true);
+    try {
+      const payload = {
+        name: quickAdd.name, category: quickAdd.category,
+        basePrice: price, duration,
+        applicableFor: genderForCategory(quickAdd.category, salon),
+        isActive: true,
+      };
+      if (quickAdd.existing?._id) await api.put(`/owner/services/${quickAdd.existing._id}`, payload);
+      else await api.post('/owner/services', payload);
+      await fetchServices();
+      setQuickAdd(null);
+      showSuccess('Saved', `${quickAdd.name} is live`);
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Failed to save');
+    } finally { setQuickSaving(false); }
+  };
+
+  // Category-level toggle: on -> drill in, off -> deactivate all in category
+  const handleCatToggle = (cat, on) => {
+    if (on) { handleCatSelect(cat); return; }
+    const ids = services.filter(sv => sv.category === cat && sv.isActive !== false).map(sv => sv._id);
+    if (!ids.length) return;
+    Alert.alert('Turn off category', `Deactivate all ${ids.length} service${ids.length !== 1 ? 's' : ''} in "${cat}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Turn Off', style: 'destructive', onPress: async () => {
+        try { await api.patch('/owner/services/bulk', { ids, patch: { isActive: false } }); await fetchServices(); } catch {}
+      } },
+    ]);
+  };
+
+  // Create a category or a service bucket (name + optional image)
+  const handleCreateBucket = async (name, imgUri) => {
+    setBucketSaving(true);
+    try {
+      let url = '';
+      if (imgUri) url = await uploadImage(imgUri);
+      const kind = createBucket.kind;
+      const key = kind === 'category' ? name : `${selectedCatLabel}::${name}`;
+      const next = { ...(salon?.categoryImages || {}) };
+      next[key] = url || next[key] || '_'; // sentinel keeps the bucket even without a photo
+      await updateSalon({ categoryImages: next });
+      setCreateBucket(null);
+      if (kind === 'category') handleCatSelect(name);
+      showSuccess('Created', kind === 'category' ? `Category "${name}" added` : `"${name}" added — toggle it on to set price`);
+    } catch (err) {
+      showError('Error', err.message || 'Failed to create');
+    } finally { setBucketSaving(false); }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       {/* Header */}
@@ -1152,16 +1416,7 @@ export default function ServicesScreen() {
                 </View>
                 <Text style={[styles.headerSub, { color: theme.subText, marginTop: 1, marginLeft: 36 }]}>Manage your business services and pricing</Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={styles.addBtn}
-                  onPress={() => { setEditingService(null); setModalVisible(true); }}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="add" size={16} color="#fff" />
-                  <Text style={styles.addBtnText}>Add Service</Text>
-                </TouchableOpacity>
-              </View>
+
             </>
           )}
         </View>
@@ -1180,11 +1435,11 @@ export default function ServicesScreen() {
             <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
           )}
 
-          {/* ── Level 1: category circles (like web CategoryNav) ── */}
-          {categoriesWithServices.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 6 }}>
+          {/* ── Level 1: category circles ── */}
+          {allCategories.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 2 }}>
               <CircleButton label="All" isAll isSelected={!selectedCatLabel} onSelect={() => handleCatSelect(null)} />
-              {categoriesWithServices.map(label => (
+              {allCategories.map(label => (
                 <CircleButton key={label} label={label}
                   imgSrc={getCatImg(label, salon, catalogMap)}
                   isSelected={selectedCatLabel === label}
@@ -1192,13 +1447,13 @@ export default function ServicesScreen() {
                   onLongPress={() => handleCircleImage(label)}
                   onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
               ))}
-              <CircleButton label="Add" isAdd onSelect={() => openAddPrefilled('', '')} />
+              <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'category' })} />
             </ScrollView>
           )}
 
-          {/* ── Level 2: subcategory circles ── */}
+          {/* ── Level 2: subcategory circles (only when catalog defines sections) ── */}
           {selectedCatLabel && subcategoriesForSelected.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 2 }}>
               <CircleButton label="All" imgSrc={getCatImg(selectedCatLabel, salon, catalogMap)}
                 isSelected={!selectedSubLabel} onSelect={() => setSelectedSubLabel(null)} />
               {subcategoriesForSelected.map(sub => (
@@ -1209,7 +1464,7 @@ export default function ServicesScreen() {
                   onLongPress={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
                   onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
               ))}
-              <CircleButton label="Add" isAdd onSelect={() => openAddPrefilled('', selectedCatLabel)} />
+              <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'subcategory' })} />
             </ScrollView>
           )}
 
@@ -1225,7 +1480,7 @@ export default function ServicesScreen() {
                 </>
               )}
               <Text style={{ marginLeft: 'auto', fontSize: 12, color: theme.subText }}>
-                {displayedServices.length} service{displayedServices.length !== 1 ? 's' : ''}
+                {menuNamesShown.length} service{menuNamesShown.length !== 1 ? 's' : ''}
               </Text>
             </View>
           )}
@@ -1268,7 +1523,7 @@ export default function ServicesScreen() {
                 placeholder="Search services by name or category…"
                 placeholderTextColor={theme.subText}
                 value={search}
-                onChangeText={t => { setSearch(t); setSelectedCatLabel(null); setSelectedSubLabel(null); }}
+                onChangeText={setSearch}
               />
               {!!search && (
                 <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -1284,82 +1539,63 @@ export default function ServicesScreen() {
             </View>
           )}
 
-          {/* Content — services filtered by circles, grouped like web */}
-          {services.length === 0 && !selectedCatLabel ? (
-            <EmptyState onAdd={() => { setEditingService(null); setModalVisible(true); }} theme={theme} />
-          ) : displayedServices.length === 0 && catalogSuggestions.length === 0 ? (
-            <View style={styles.noResultsWrap}>
-              <Ionicons name="search-outline" size={40} color={theme.border} />
-              <Text style={[styles.noResultsText, { color: theme.subText }]}>
-                {search ? `No services match "${search}"` : 'No services here yet.'}
-              </Text>
-              {search ? (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <Text style={styles.clearSearchText}>Clear search</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.emptyBtn} onPress={() => { setEditingService(null); setModalVisible(true); }} activeOpacity={0.85}>
-                  <Ionicons name="add" size={16} color="#fff" />
-                  <Text style={styles.emptyBtnText}>Add Service</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : (
-            <View style={{ gap: 12 }}>
-              {displayedGrouped.map(([cat, svcs]) => (
-                <View key={cat}>
-                  {!selectedCatLabel && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <Ionicons name={getCatIcon(cat)} size={14} color={theme.accent} />
-                      <Text style={{ fontSize: 13, fontWeight: '800', color: theme.text }}>{cat}</Text>
-                      <Text style={{ fontSize: 11.5, color: theme.subText }}>· {svcs.length}</Text>
-                    </View>
-                  )}
-                  <View style={{ gap: 10 }}>
-                    {svcs.map(svc => (
-                      <ServiceCard
-                        key={svc._id}
-                        service={svc}
-                        theme={theme}
-                        onEdit={s => { setEditingService(s); setModalVisible(true); }}
-                        onDelete={handleDelete}
-                        onToggle={handleToggleActive}
+          {/* ── Content: the whole service menu as toggle rows ── */}
+          {!selectedCatLabel ? (
+            /* ALL: every category as a menu row (photo · name · count · toggle) */
+            allCategories.length === 0 ? (
+              <EmptyState onAdd={() => setCreateBucket({ kind: 'category' })} theme={theme} />
+            ) : (
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: theme.subText, letterSpacing: 0.5, marginBottom: 2 }}>SERVICE MENU</Text>
+                {allCategories
+                  .filter(cat => !search.trim() || cat.toLowerCase().includes(search.toLowerCase()))
+                  .map(cat => {
+                    const active = activeCountInCat(cat);
+                    const total  = menuNamesForCat(cat).length;
+                    return (
+                      <MenuServiceRow
+                        key={cat}
+                        img={getCatImg(cat, salon, catalogMap)}
+                        name={cat}
+                        subline={active > 0 ? `${active} active · ${total} in menu` : `${total} in menu · tap to set up`}
+                        value={active > 0}
+                        onToggle={(v) => handleCatToggle(cat, v)}
+                        onPress={() => handleCatSelect(cat)}
+                        uploading={!!circleUploading[cat]}
+                        onLongPress={() => handleCircleImage(cat)}
                       />
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Catalog suggestions — menu services the owner hasn't added yet */}
-          {catalogSuggestions.length > 0 && (
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Ionicons name="sparkles-outline" size={13} color="#818cf8" />
-                <Text style={{ fontSize: 12.5, fontWeight: '800', color: theme.text }}>
-                  From your service menu
+                    );
+                  })}
+                <FlatAddButton label="Add Category" onPress={() => setCreateBucket({ kind: 'category' })} />
+              </View>
+            )
+          ) : (
+            /* CATEGORY: each service as a photo · name · toggle row + add */
+            <View style={{ gap: 8 }}>
+              {menuNamesShown.length === 0 ? (
+                <Text style={{ fontSize: 13, color: theme.subText, textAlign: 'center', paddingVertical: 10 }}>
+                  {search ? `No services match "${search}"` : 'No services here yet — add your first one below.'}
                 </Text>
-                <Text style={{ fontSize: 11.5, color: theme.subText }}>· tap + to add with price</Text>
-              </View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {catalogSuggestions.map(name => (
-                  <TouchableOpacity
-                    key={name}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: 6,
-                      borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(129,140,248,0.45)',
-                      backgroundColor: 'rgba(99,102,241,0.06)',
-                      borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12,
-                    }}
-                    onPress={() => openAddPrefilled(name, selectedCatLabel)}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="add-circle" size={16} color="#818cf8" />
-                    <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.text }}>{name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              ) : (
+                menuNamesShown.map(name => {
+                  const svc = serviceByNameCat(name, selectedCatLabel);
+                  const on  = svc && svc.isActive !== false;
+                  return (
+                    <MenuServiceRow
+                      key={name}
+                      img={getSubImg(selectedCatLabel, name, salon, catalogMap)}
+                      name={name}
+                      subline={svc ? `₹${svc.basePrice} · ${svc.duration} min${on ? '' : ' · turned off'}` : 'Tap to set price & time'}
+                      value={!!on}
+                      onToggle={(v) => handleRowToggle(name, selectedCatLabel, v)}
+                      onPress={() => handleRowPress(name, selectedCatLabel)}
+                      uploading={!!circleUploading[`${selectedCatLabel}::${name}`]}
+                      onLongPress={() => handleCircleImage(`${selectedCatLabel}::${name}`)}
+                    />
+                  );
+                })
+              )}
+              <FlatAddButton label="Add Service" onPress={() => setCreateBucket({ kind: 'subcategory' })} />
             </View>
           )}
         </ScrollView>
@@ -1371,6 +1607,26 @@ export default function ServicesScreen() {
         salon={salon}
         onClose={() => { setModalVisible(false); setEditingService(null); }}
         onSaved={fetchServices}
+      />
+
+      {/* Toggle-on / edit a service: price + time */}
+      <QuickAddModal
+        visible={!!quickAdd}
+        title={quickAdd?.name || ''}
+        initialPrice={quickAdd?.existing?.basePrice}
+        initialDuration={quickAdd?.existing?.duration ?? 30}
+        saving={quickSaving}
+        onClose={() => setQuickAdd(null)}
+        onSave={handleQuickSave}
+      />
+
+      {/* Create a category or a service (name + optional photo) */}
+      <CreateBucketModal
+        visible={!!createBucket}
+        kind={createBucket?.kind}
+        creating={bucketSaving}
+        onClose={() => setCreateBucket(null)}
+        onCreate={handleCreateBucket}
       />
 
       {/* Bulk control panel */}
