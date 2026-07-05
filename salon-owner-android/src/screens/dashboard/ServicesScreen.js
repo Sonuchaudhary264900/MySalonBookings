@@ -36,29 +36,37 @@ const getSubImg = (catLabel, subLabel, salon, catalogMap) => {
 };
 
 // ── CircleButton — RN port of the website's 54px category circle ──
-function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSelect, onLongPress }) {
+function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSelect, onLongPress, onEditImage }) {
   const { theme } = useTheme();
   const [broken, setBroken] = useState(false);
   const showImg = !isAll && !isAdd && !!imgSrc && !broken;
   return (
     <TouchableOpacity onPress={onSelect} onLongPress={onLongPress} delayLongPress={450} activeOpacity={0.8}
       style={{ alignItems: 'center', paddingHorizontal: 5, opacity: isSelected || isAdd ? 1 : 0.7, transform: [{ translateY: isSelected ? -4 : 0 }, { scale: isSelected ? 1.05 : 1 }] }}>
-      <View style={[
-        cb.circle,
-        isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' },
-        !showImg && !isAll && !isAdd && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt },
-        isAdd && { backgroundColor: 'rgba(99,102,241,0.08)', borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(129,140,248,0.55)' },
-      ]}>
-        {uploading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : isAdd ? (
-          <Ionicons name="add" size={26} color="#818cf8" />
-        ) : isAll ? (
-          <Ionicons name="grid-outline" size={21} color="#fff" />
-        ) : showImg ? (
-          <Image source={{ uri: imgSrc }} style={{ width: '100%', height: '100%' }} onError={() => setBroken(true)} />
-        ) : (
-          <Text style={{ fontSize: 18, fontWeight: '800', color: isSelected ? '#fff' : theme.subText }}>{label.charAt(0)}</Text>
+      <View>
+        <View style={[
+          cb.circle,
+          isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' },
+          !showImg && !isAll && !isAdd && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt },
+          isAdd && { backgroundColor: 'rgba(99,102,241,0.08)', borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(129,140,248,0.55)' },
+        ]}>
+          {uploading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : isAdd ? (
+            <Ionicons name="add" size={26} color="#818cf8" />
+          ) : isAll ? (
+            <Ionicons name="grid-outline" size={21} color="#fff" />
+          ) : showImg ? (
+            <Image source={{ uri: imgSrc }} style={{ width: '100%', height: '100%' }} onError={() => setBroken(true)} />
+          ) : (
+            <Text style={{ fontSize: 18, fontWeight: '800', color: isSelected ? '#fff' : theme.subText }}>{label.charAt(0)}</Text>
+          )}
+        </View>
+        {/* pen badge — tap to add/change photo */}
+        {!isAll && !isAdd && !uploading && onEditImage && (
+          <TouchableOpacity onPress={onEditImage} style={[cb.penBadge, { borderColor: theme.bg }]} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Ionicons name="pencil" size={11} color="#fff" />
+          </TouchableOpacity>
         )}
       </View>
       <Text numberOfLines={2} style={[cb.label, { color: isAdd ? '#818cf8' : isSelected ? theme.accent : theme.subText, fontWeight: isSelected || isAdd ? '800' : '600' }]}>{label}</Text>
@@ -76,6 +84,12 @@ const cb = StyleSheet.create({
     shadowColor: '#6366f1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
   label: { fontSize: 11, marginTop: 5, textAlign: 'center', maxWidth: 82 },
+  penBadge: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2,
+  },
 });
 
 // Derive who a service is for, from its category label (category defines gender)
@@ -88,12 +102,19 @@ function genderForCategory(catLabel, salon) {
 }
 
 // ── Menu-style row: round photo · name · sub-line · toggle ─────────
-function MenuServiceRow({ img, name, subline, value, disabled, onToggle, onPress, onLongPress, uploading }) {
+function MenuServiceRow({ img, name, subline, value, disabled, onToggle, onPress, onLongPress, onEditImage, uploading }) {
   const { theme } = useTheme();
   const [broken, setBroken] = useState(false);
   return (
     <TouchableOpacity activeOpacity={onPress ? 0.7 : 1} onPress={onPress} onLongPress={onLongPress} delayLongPress={450}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 12 }}>
+      <View>
+        {onEditImage && !uploading && (
+          <TouchableOpacity onPress={onEditImage} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            style={{ position: 'absolute', bottom: -3, right: -3, zIndex: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.card }}>
+            <Ionicons name="pencil" size={10} color="#fff" />
+          </TouchableOpacity>
+        )}
       <View style={{ width: 46, height: 46, borderRadius: 23, overflow: 'hidden', backgroundColor: theme.cardAlt, alignItems: 'center', justifyContent: 'center' }}>
         {uploading ? (
           <ActivityIndicator size="small" color="#818cf8" />
@@ -102,6 +123,7 @@ function MenuServiceRow({ img, name, subline, value, disabled, onToggle, onPress
         ) : (
           <Text style={{ fontSize: 17, fontWeight: '800', color: theme.subText }}>{(name || '?').charAt(0)}</Text>
         )}
+      </View>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: '700', color: theme.text }}>{name}</Text>
@@ -1445,6 +1467,7 @@ export default function ServicesScreen() {
                   isSelected={selectedCatLabel === label}
                   uploading={!!circleUploading[label]}
                   onLongPress={() => handleCircleImage(label)}
+                  onEditImage={() => handleCircleImage(label)}
                   onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
               ))}
               <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'category' })} />
@@ -1462,6 +1485,7 @@ export default function ServicesScreen() {
                   isSelected={selectedSubLabel === sub}
                   uploading={!!circleUploading[`${selectedCatLabel}::${sub}`]}
                   onLongPress={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
+                  onEditImage={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
                   onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
               ))}
               <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'subcategory' })} />
@@ -1563,6 +1587,7 @@ export default function ServicesScreen() {
                         onPress={() => handleCatSelect(cat)}
                         uploading={!!circleUploading[cat]}
                         onLongPress={() => handleCircleImage(cat)}
+                        onEditImage={() => handleCircleImage(cat)}
                       />
                     );
                   })}
@@ -1591,6 +1616,7 @@ export default function ServicesScreen() {
                       onPress={() => handleRowPress(name, selectedCatLabel)}
                       uploading={!!circleUploading[`${selectedCatLabel}::${name}`]}
                       onLongPress={() => handleCircleImage(`${selectedCatLabel}::${name}`)}
+                      onEditImage={() => handleCircleImage(`${selectedCatLabel}::${name}`)}
                     />
                   );
                 })

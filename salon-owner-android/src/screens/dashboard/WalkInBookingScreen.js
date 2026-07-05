@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
 import { useSalon } from '../../context/SalonContext';
+import BottomNavStrip from '../../components/BottomNavStrip';
 
 function todayStr(offset = 0) {
   const d = new Date();
@@ -152,20 +153,23 @@ export default function WalkInBookingScreen() {
 
   if (success) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <View style={styles.successCircle}>
-          <Ionicons name="checkmark" size={48} color="#fff" />
+      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, paddingTop: insets.top + 32 }}>
+          <View style={styles.successCircle}>
+            <Ionicons name="checkmark" size={48} color="#fff" />
+          </View>
+          <Text style={[styles.successTitle, { color: theme.text }]}>Booking Created!</Text>
+          <Text style={[styles.successSub, { color: theme.subText }]}>
+            {selectedService?.name} for {customerName} at {fmt12(selectedTime)}, {formatDisplayDate(selectedDate)}.
+          </Text>
+          <TouchableOpacity style={styles.newBtn} onPress={resetForm}>
+            <Text style={styles.newBtnText}>New Walk-in</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ marginTop: 14 }} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
+            <Text style={{ color: theme.subText, fontSize: 14, fontWeight: '600' }}>Done</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.successTitle, { color: theme.text }]}>Booking Created!</Text>
-        <Text style={[styles.successSub, { color: theme.subText }]}>
-          {selectedService?.name} for {customerName} at {fmt12(selectedTime)}, {formatDisplayDate(selectedDate)}.
-        </Text>
-        <TouchableOpacity style={styles.newBtn} onPress={resetForm}>
-          <Text style={styles.newBtnText}>New Walk-in</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={{ marginTop: 14 }} onPress={() => navigation.goBack()}>
-          <Text style={{ color: theme.subText, fontSize: 14, fontWeight: '600' }}>Done</Text>
-        </TouchableOpacity>
+        <BottomNavStrip />
       </View>
     );
   }
@@ -333,7 +337,7 @@ export default function WalkInBookingScreen() {
         </ScrollView>
 
         {/* Book Button */}
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16, backgroundColor: theme.card, borderTopColor: theme.border }]}>
+        <View style={[styles.footer, { paddingBottom: 12, backgroundColor: theme.card, borderTopColor: theme.border }]}>
           <Text style={[styles.pricePreview, { color: theme.subText }]}>
             {selectedService
               ? `${selectedService.name} · ₹${selectedService.basePrice} · ${selectedService.duration || 30} min${selectedTime ? ` · ${fmt12(selectedTime)}` : ''}`
@@ -350,6 +354,9 @@ export default function WalkInBookingScreen() {
               : <Text style={styles.bookBtnText}>{canBook ? 'Create Walk-in Booking' : missing}</Text>}
           </TouchableOpacity>
         </View>
+
+        {/* App bottom navigation — jump to any tab (Home works) */}
+        <BottomNavStrip />
       </View>
     </KeyboardAvoidingView>
   );

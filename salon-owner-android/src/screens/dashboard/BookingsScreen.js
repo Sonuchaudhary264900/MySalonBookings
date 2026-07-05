@@ -918,7 +918,7 @@ export default function BookingsScreen() {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={bStyles.headerTitle}>Bookings</Text>
-          <TouchableOpacity style={bStyles.walkInBtn} onPress={() => setShowModal(true)}>
+          <TouchableOpacity style={bStyles.walkInBtn} onPress={() => navigation.navigate('WalkIn')}>
             <Ionicons name="add" size={18} color="#fff" />
             <Text style={bStyles.walkInBtnText}>Walk-in</Text>
           </TouchableOpacity>
@@ -1044,14 +1044,6 @@ export default function BookingsScreen() {
           }
         />
       )}
-
-      <WalkInModal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        salonId={salon?._id}
-        services={services.filter((s) => s.isActive !== false)}
-        onSuccess={createWalkIn}
-      />
 
       {/* ── Action Sheet ── */}
       <Modal visible={!!actionSheet} transparent animationType="slide" onRequestClose={() => setActionSheet(null)}>

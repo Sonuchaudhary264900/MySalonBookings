@@ -537,7 +537,7 @@ img.onload=function(){
             <TouchableOpacity onPress={fetchQueue} disabled={queueLoading} style={styles.heroRefreshBtn}>
               <Ionicons name={queueLoading ? 'sync' : 'refresh'} size={16} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowWalkIn(true)} style={styles.heroAddBtn}>
+            <TouchableOpacity onPress={() => navigation.navigate('WalkIn')} style={styles.heroAddBtn}>
               <Ionicons name="add" size={16} color="#4f46e5" />
               <Text style={styles.heroAddText}>Add Walk-in</Text>
             </TouchableOpacity>
@@ -828,7 +828,7 @@ img.onload=function(){
           </View>
           <View style={{ padding: 14, gap: 8 }}>
             {[
-              { label: 'Add Walk-in',  icon: 'add-circle-outline', onPress: () => setShowWalkIn(true),           accent: true },
+              { label: 'Add Walk-in',  icon: 'add-circle-outline', onPress: () => navigation.navigate('WalkIn'), accent: true },
               { label: 'All Bookings', icon: 'calendar-outline',   onPress: () => navigation.navigate('Bookings') },
               { label: 'Services',     icon: 'cut-outline',         onPress: () => navigation.navigate('Services') },
               { label: 'Customers',    icon: 'people-outline',      onPress: () => navigation.navigate('Customers') },
@@ -974,14 +974,6 @@ img.onload=function(){
         </View>
       </View>
     </Modal>
-
-    <WalkInModal
-      visible={showWalkIn}
-      onClose={() => setShowWalkIn(false)}
-      salonId={salon?._id}
-      services={services.filter(s => s.isActive !== false)}
-      onSuccess={createWalkIn}
-    />
 
     {/* QR Modal */}
     <Modal visible={showQR} transparent animationType="fade" onRequestClose={() => setShowQR(false)}>
