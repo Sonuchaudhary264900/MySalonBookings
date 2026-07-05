@@ -1892,6 +1892,28 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
     }
   }
 
+  // ── Salon-wide capacity guard ──
+  // A solo owner has NO Barber records, so the per-barber check above is
+  // skipped and two walk-ins at the same time would both succeed. Enforce a
+  // capacity limit (= active barbers, or 1 for a solo owner) across ALL
+  // active bookings that overlap this time — for BOTH walk-in and online.
+  {
+    const Barber = require("../models/Barber");
+    const activeBarbers = await Barber.countDocuments({ salonId: salon._id, isActive: true });
+    const capacity = Math.max(1, activeBarbers);
+    const dayBookings = await Booking.find({
+      salonId: salon._id,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ["pending", "confirmed", "in_progress"] },
+    }).select("appointmentTime estimatedDuration").lean();
+    const ns = timeToMinutes(appointmentTime);
+    const ne = ns + service.duration;
+    const overlappingCount = dayBookings.filter(b => b.appointmentTime && overlaps(b, ns, ne)).length;
+    if (overlappingCount >= capacity) {
+      return res.status(409).json({ success: false, message: "That time slot is already booked. Please choose another time." });
+    }
+  }
+
   const booking = await Booking.create({
     isWalkIn:         true,
     salonId:          salon._id,

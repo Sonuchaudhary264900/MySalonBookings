@@ -214,6 +214,31 @@ const createBooking = async (req, res) => {
       // barber may be null — booking will be created as UNASSIGNED (handled below)
     }
 
+    // ── Salon-wide capacity guard ──
+    // Per-barber checks above don't protect a solo owner (no Barber records) or
+    // catch a customer + walk-in colliding. Cap concurrent bookings at the
+    // number of active barbers, or 1 for a solo owner.
+    {
+      const activeBarbers = await Barber.countDocuments({ salonId, isActive: true });
+      const capacity = Math.max(1, activeBarbers);
+      const dayBookings = await Booking.find({
+        salonId,
+        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+      }).select('appointmentTime estimatedDuration').lean();
+      const overlappingCount = dayBookings.filter(b => {
+        if (!b.appointmentTime) return false;
+        const es = parseMin(b.appointmentTime, '09:00');
+        const ee = es + (b.estimatedDuration || 30);
+        return newStart < ee && newEnd > es;
+      }).length;
+      if (overlappingCount >= capacity) {
+        return res.status(409).json(
+          formatErrorResponse('That time slot was just booked. Please choose another time.', 409)
+        );
+      }
+    }
+
     // Apply coupon if provided
     let discountAmount = 0;
     let appliedCouponCode = null;

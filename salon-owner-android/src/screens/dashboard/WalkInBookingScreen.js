@@ -85,12 +85,12 @@ export default function WalkInBookingScreen() {
 
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
-  // Fetch available slots whenever date or service changes
-  useEffect(() => {
+  // Fetch available slots for the current date + service
+  const refetchSlots = useCallback((keepTime = false) => {
     if (!salon?._id || !selectedDate) return;
     const duration = selectedService?.duration || 30;
     setSlotsLoading(true);
-    setSelectedTime('');
+    if (!keepTime) setSelectedTime('');
     api.get(`/public/salons/${salon._id}/booked-slots?date=${selectedDate}&duration=${duration}`)
       .then(res => {
         const d = res.data.data || {};
@@ -100,6 +100,8 @@ export default function WalkInBookingScreen() {
       .catch(() => { setAllSlots([]); setBookedSlots([]); })
       .finally(() => setSlotsLoading(false));
   }, [salon?._id, selectedDate, selectedService]);
+
+  useEffect(() => { refetchSlots(); }, [refetchSlots]);
 
   const formatDisplayDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
@@ -116,10 +118,11 @@ export default function WalkInBookingScreen() {
   const visibleSlots = allSlots.filter(t => !isPast(t));
 
   const phoneDigits = customerPhone.replace(/\D/g, '');
-  const phoneValid  = phoneDigits.length === 0 || phoneDigits.length === 10;
-  const canBook     = customerName.trim().length > 0 && !!selectedService && !!selectedTime && phoneValid;
+  const phoneValid  = phoneDigits.length === 10;
+  const canBook     = customerName.trim().length > 0 && phoneValid && !!selectedService && !!selectedTime;
   const missing =
     !customerName.trim() ? 'Enter customer name' :
+    !phoneDigits         ? 'Enter phone number' :
     !phoneValid          ? 'Phone must be 10 digits' :
     !selectedService     ? 'Select a service' :
     !selectedTime        ? 'Pick a time slot' : '';
@@ -130,7 +133,7 @@ export default function WalkInBookingScreen() {
     try {
       await api.post('/owner/bookings', {
         customerName: customerName.trim(),
-        customerPhone: phoneDigits ? phoneDigits : '',
+        customerPhone: phoneDigits,
         serviceId: selectedService._id,
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
@@ -139,7 +142,10 @@ export default function WalkInBookingScreen() {
       setSuccess(true);
       showSuccess('Booked!', 'Walk-in booking created successfully');
     } catch (err) {
-      showError('Error', err.response?.data?.message || 'Failed to create booking');
+      const status = err.response?.status;
+      showError('Could not book', err.response?.data?.message || 'Failed to create booking');
+      // Slot was taken meanwhile — refresh availability so it shows blocked
+      if (status === 409) refetchSlots();
     } finally {
       setSaving(false);
     }
@@ -214,16 +220,20 @@ export default function WalkInBookingScreen() {
               value={customerName}
               onChangeText={setCustomerName}
             />
-            <TextInput
-              style={[styles.input, { borderColor: !phoneValid ? '#ef4444' : theme.inputBorder, color: theme.text, backgroundColor: theme.input, marginTop: 8 }]}
-              placeholder="Phone number (optional)"
-              placeholderTextColor={theme.placeholder}
-              value={customerPhone}
-              onChangeText={t => setCustomerPhone(t.replace(/\D/g, '').slice(0, 10))}
-              keyboardType="phone-pad"
-              maxLength={10}
-            />
-            {!phoneValid && <Text style={styles.fieldError}>Enter a valid 10-digit number or leave empty</Text>}
+            <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 10, marginTop: 8, backgroundColor: theme.input, borderColor: (phoneDigits.length > 0 && !phoneValid) ? '#ef4444' : theme.inputBorder }}>
+              <Text style={{ paddingLeft: 12, paddingRight: 8, fontSize: 14, color: theme.subText, fontWeight: '600' }}>+91</Text>
+              <View style={{ width: 1, height: 22, backgroundColor: theme.inputBorder }} />
+              <TextInput
+                style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: theme.text }}
+                placeholder="Phone number *"
+                placeholderTextColor={theme.placeholder}
+                value={customerPhone}
+                onChangeText={t => setCustomerPhone(t.replace(/\D/g, '').slice(0, 10))}
+                keyboardType="phone-pad"
+                maxLength={10}
+              />
+            </View>
+            {phoneDigits.length > 0 && !phoneValid && <Text style={styles.fieldError}>Enter a valid 10-digit number</Text>}
           </View>
 
           {/* Service */}
