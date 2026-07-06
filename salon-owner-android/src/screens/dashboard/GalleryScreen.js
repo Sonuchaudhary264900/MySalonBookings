@@ -302,6 +302,52 @@ function ReelsInsightsModal({ visible, onClose, theme }) {
   );
 }
 
+/* ── Upload bottom-sheet — clear Photo / Video choice with crop hints ── */
+function UploadSheet({ visible, onClose, onPick, theme }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 34 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border, alignSelf: 'center', marginBottom: 16 }} />
+              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text, marginBottom: 4 }}>Add to Gallery</Text>
+              <Text style={{ fontSize: 13, color: theme.subText, marginBottom: 18 }}>Crop or trim your media before it goes live</Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity onPress={() => onPick('image')} activeOpacity={0.85}
+                  style={{ flex: 1, borderWidth: 1.5, borderColor: 'rgba(99,102,241,0.4)', backgroundColor: 'rgba(99,102,241,0.08)', borderRadius: 18, paddingVertical: 20, alignItems: 'center', gap: 9 }}>
+                  <View style={{ width: 54, height: 54, borderRadius: 16, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="image" size={27} color="#fff" />
+                  </View>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>Photo</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="crop-outline" size={12} color={theme.subText} />
+                    <Text style={{ fontSize: 11.5, color: theme.subText }}>Pick & crop</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => onPick('video')} activeOpacity={0.85}
+                  style={{ flex: 1, borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 18, paddingVertical: 20, alignItems: 'center', gap: 9 }}>
+                  <View style={{ width: 54, height: 54, borderRadius: 16, backgroundColor: '#a78bfa', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="videocam" size={27} color="#fff" />
+                  </View>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>Video</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="cut-outline" size={12} color={theme.subText} />
+                    <Text style={{ fontSize: 11.5, color: theme.subText }}>Pick & trim</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={onClose} style={{ marginTop: 16, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.subText }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+}
+
 export default function GalleryScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
@@ -314,6 +360,7 @@ export default function GalleryScreen() {
   const [activeTag, setActiveTag] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [showReels, setShowReels] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const fetchMedia = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -336,26 +383,23 @@ export default function GalleryScreen() {
   useEffect(() => { fetchMedia(); }, [fetchMedia]);
   const onRefresh = async () => { setRefreshing(true); await fetchMedia(true); setRefreshing(false); };
 
-  /* ── Upload handler — shows action sheet for photo or video ── */
-  const pickAndUpload = () => {
-    Alert.alert('Upload Media', 'What would you like to upload?', [
-      { text: 'Photos', onPress: () => pickMedia('image') },
-      { text: 'Video', onPress: () => pickMedia('video') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
+  /* ── Upload handler — opens the polished upload sheet ── */
+  const pickAndUpload = () => setShowUpload(true);
 
   const pickMedia = async (type) => {
+    setShowUpload(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showError('Permission Denied', 'Please allow media library access'); return; }
 
+    // allowsEditing opens the native crop UI for photos and the trim UI for
+    // videos. (Cropping requires single selection, so multi-select is off.)
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: type === 'image'
         ? ImagePicker.MediaTypeOptions.Images
         : ImagePicker.MediaTypeOptions.Videos,
-      allowsMultipleSelection: type === 'image',
-      quality: type === 'image' ? 0.8 : 1,
-      videoMaxDuration: 120,
+      allowsEditing: true,
+      quality: type === 'image' ? 0.85 : 1,
+      videoMaxDuration: 60,
     });
     if (result.canceled) return;
 
@@ -594,6 +638,7 @@ export default function GalleryScreen() {
       </View>
 
       <ReelsInsightsModal visible={showReels} onClose={() => setShowReels(false)} theme={theme} />
+      <UploadSheet visible={showUpload} onClose={() => setShowUpload(false)} onPick={pickMedia} theme={theme} />
 
       {loading ? (
         <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />

@@ -102,8 +102,8 @@ const NAV_SECTIONS = [
       { name: 'Coupons',   label: 'Coupons',          icon: 'pricetag-outline', iconFocused: 'pricetag' },
       { name: 'Packages',  label: 'Packages & Plans', icon: 'gift-outline',     iconFocused: 'gift'     },
       { name: 'Feedback',  label: 'Help & Feedback',  icon: 'help-buoy-outline', iconFocused: 'help-buoy' },
-      { name: 'Developer', label: 'Developer & WhatsApp Test', icon: 'code-slash-outline', iconFocused: 'code-slash' },
       // ── Hidden for MVP (cash-only / advanced tooling) — screens still registered ──
+      // { name: 'Developer',  label: 'Developer',       icon: 'code-slash-outline', iconFocused: 'code-slash' },
       // { name: 'Wallet',     label: 'Wallet',          icon: 'wallet-outline',   iconFocused: 'wallet' },
       // { name: 'Promotions', label: 'Promote Salon',   icon: 'megaphone-outline', iconFocused: 'megaphone' },
       // { name: 'Billing',    label: 'Billing & Plan', icon: 'card-outline',     iconFocused: 'card' },
