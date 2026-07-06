@@ -51,6 +51,30 @@ export default function DeveloperScreen() {
   const [createdSecret, setCreatedSecret] = useState(null);
   const [showSecret, setShowSecret] = useState(false);
 
+  const [waPhone, setWaPhone] = useState('');
+  const [waTesting, setWaTesting] = useState(false);
+
+  const sendWhatsAppTest = async () => {
+    setWaTesting(true);
+    try {
+      const res = await api.get('/owner/whatsapp/test', { params: waPhone ? { phone: waPhone } : {} });
+      const d = res.data || {};
+      if (d.success) {
+        Alert.alert('WhatsApp sent ✅', `Message accepted by Meta for ${d.to}. Check that number's WhatsApp.`);
+      } else if (d.configured === false) {
+        Alert.alert('Not configured', 'WhatsApp credentials are not set on the server (WHATSAPP_TOKEN / PHONE_NUMBER_ID).');
+      } else {
+        const err = d.result?.error;
+        const msg = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err || 'Unknown error');
+        Alert.alert('WhatsApp failed', `${msg}\n\nTo: ${d.to || waPhone}`);
+      }
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.message || e.message || 'Request failed');
+    } finally {
+      setWaTesting(false);
+    }
+  };
+
   const fetchAll = useCallback(async () => {
     try {
       const [k, w] = await Promise.all([
@@ -193,6 +217,27 @@ export default function DeveloperScreen() {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* ── WhatsApp test ── */}
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>WhatsApp Test</Text>
+            <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 10 }}>
+              Send a test booking-confirmation message to check WhatsApp delivery. Leave blank to send to your own number.
+            </Text>
+            <TextInput
+              value={waPhone}
+              onChangeText={setWaPhone}
+              placeholder="Phone (optional, e.g. 9876543210)"
+              placeholderTextColor={theme.subText}
+              keyboardType="phone-pad"
+              style={{ borderWidth: 1.5, borderColor: theme.border, borderRadius: 10, paddingHorizontal: 12, height: 44, color: theme.text, backgroundColor: theme.bg, marginBottom: 10 }}
+            />
+            <TouchableOpacity onPress={sendWhatsAppTest} disabled={waTesting}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 12, backgroundColor: '#25D366', opacity: waTesting ? 0.6 : 1 }}>
+              {waTesting ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-whatsapp" size={18} color="#fff" />}
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{waTesting ? 'Sending…' : 'Send Test WhatsApp'}</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ── API Keys ── */}
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
