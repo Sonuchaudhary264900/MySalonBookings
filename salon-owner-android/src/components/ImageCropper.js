@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, Image, StyleSheet, TouchableOpacity, PanResponder,
-  Dimensions, ActivityIndicator, Modal, StatusBar,
+  Dimensions, ActivityIndicator, Modal, StatusBar, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +9,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-const MIN_CROP = 60; // min crop size on screen (points)
+const MIN_CROP = 60;
+const HIT = 22; // half the handle hit-box
 
-// Works with both the modern (context) and legacy expo-image-manipulator APIs.
 async function runManipulate(uri, actions) {
   if (typeof ImageManipulator.manipulateAsync === 'function') {
     return ImageManipulator.manipulateAsync(uri, actions, {
@@ -36,8 +36,6 @@ export default function ImageCropper({ visible, uri, width, height, onCancel, on
 
   const [work, setWork] = useState({ uri, w: width || 1000, h: height || 1000 });
   const [busy, setBusy] = useState(false);
-  const [, force] = useState(0);
-  const rerender = () => force(n => n + 1);
 
   useEffect(() => { setWork({ uri, w: width || 1000, h: height || 1000 }); }, [uri, width, height]);
 
@@ -46,76 +44,82 @@ export default function ImageCropper({ visible, uri, width, height, onCancel, on
     const scale = Math.min(SCREEN_W / work.w, cropAreaH / work.h);
     const w = work.w * scale;
     const h = work.h * scale;
-    return {
-      w, h,
-      left: (SCREEN_W - w) / 2,
-      top: TOP_BAR + (cropAreaH - h) / 2,
-      scale, // screen points per image pixel
-    };
+    return { w, h, left: (SCREEN_W - w) / 2, top: TOP_BAR + (cropAreaH - h) / 2, scale };
   }, [work.w, work.h, cropAreaH, TOP_BAR]);
 
-  const bounds = { L: disp.left, T: disp.top, R: disp.left + disp.w, B: disp.top + disp.h };
+  // Live geometry the gesture handlers read (kept in a ref so the once-created
+  // PanResponders always see the current values, even after a rotate).
+  const geo = useRef({ L: 0, T: 0, R: 0, B: 0, scale: 1 });
+  geo.current = { L: disp.left, T: disp.top, R: disp.left + disp.w, B: disp.top + disp.h, scale: disp.scale };
 
-  // Free-form crop rectangle (screen coords). Starts as the whole image.
-  const rectRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
-  const startRect = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  // Animated crop rect — updated directly (no React re-render → smooth, and the
+  // handle views never remount mid-drag).
+  const rx = useRef(new Animated.Value(0)).current;
+  const ry = useRef(new Animated.Value(0)).current;
+  const rw = useRef(new Animated.Value(0)).current;
+  const rh = useRef(new Animated.Value(0)).current;
+  const num = useRef({ x: 0, y: 0, w: 0, h: 0 }); // numeric mirror
+  const start = useRef({ x: 0, y: 0, w: 0, h: 0 });
 
-  // Reset the rect to the full image whenever the image/display changes
-  useEffect(() => {
-    rectRef.current = { x: disp.left, y: disp.top, w: disp.w, h: disp.h };
-    rerender();
-  }, [disp.left, disp.top, disp.w, disp.h]);
+  const setRect = (x, y, w, h) => {
+    num.current = { x, y, w, h };
+    rx.setValue(x); ry.setValue(y); rw.setValue(w); rh.setValue(h);
+  };
+
+  const resetRect = () => setRect(disp.left, disp.top, disp.w, disp.h);
+
+  // Reset to full image whenever the display changes (new pic / rotate)
+  useEffect(() => { resetRect(); }, [disp.left, disp.top, disp.w, disp.h]);
 
   const makeCorner = (corner) => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: () => { startRect.current = { ...rectRef.current }; },
+    onShouldBlockNativeResponder: () => true,
+    onPanResponderGrant: () => { start.current = { ...num.current }; },
     onPanResponderMove: (_e, gs) => {
-      const s = startRect.current;
+      const s = start.current;
+      const { L, T, R, B } = geo.current;
       let { x, y, w, h } = s;
       if (corner === 'tl') {
-        const nx = clamp(s.x + gs.dx, bounds.L, s.x + s.w - MIN_CROP);
-        const ny = clamp(s.y + gs.dy, bounds.T, s.y + s.h - MIN_CROP);
+        const nx = clamp(s.x + gs.dx, L, s.x + s.w - MIN_CROP);
+        const ny = clamp(s.y + gs.dy, T, s.y + s.h - MIN_CROP);
         x = nx; y = ny; w = s.x + s.w - nx; h = s.y + s.h - ny;
       } else if (corner === 'tr') {
-        const nr = clamp(s.x + s.w + gs.dx, s.x + MIN_CROP, bounds.R);
-        const ny = clamp(s.y + gs.dy, bounds.T, s.y + s.h - MIN_CROP);
+        const nr = clamp(s.x + s.w + gs.dx, s.x + MIN_CROP, R);
+        const ny = clamp(s.y + gs.dy, T, s.y + s.h - MIN_CROP);
         y = ny; w = nr - s.x; h = s.y + s.h - ny;
       } else if (corner === 'bl') {
-        const nx = clamp(s.x + gs.dx, bounds.L, s.x + s.w - MIN_CROP);
-        const nb = clamp(s.y + s.h + gs.dy, s.y + MIN_CROP, bounds.B);
+        const nx = clamp(s.x + gs.dx, L, s.x + s.w - MIN_CROP);
+        const nb = clamp(s.y + s.h + gs.dy, s.y + MIN_CROP, B);
         x = nx; w = s.x + s.w - nx; h = nb - s.y;
-      } else { // br
-        const nr = clamp(s.x + s.w + gs.dx, s.x + MIN_CROP, bounds.R);
-        const nb = clamp(s.y + s.h + gs.dy, s.y + MIN_CROP, bounds.B);
+      } else {
+        const nr = clamp(s.x + s.w + gs.dx, s.x + MIN_CROP, R);
+        const nb = clamp(s.y + s.h + gs.dy, s.y + MIN_CROP, B);
         w = nr - s.x; h = nb - s.y;
       }
-      rectRef.current = { x, y, w, h }; rerender();
+      setRect(x, y, w, h);
     },
   });
 
-  const bodyResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_e, gs) => Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: () => { startRect.current = { ...rectRef.current }; },
-    onPanResponderMove: (_e, gs) => {
-      const s = startRect.current;
-      const nx = clamp(s.x + gs.dx, bounds.L, bounds.R - s.w);
-      const ny = clamp(s.y + gs.dy, bounds.T, bounds.B - s.h);
-      rectRef.current = { ...s, x: nx, y: ny }; rerender();
-    },
-  })).current;
-
-  const cornerResponders = useRef({
+  const corners = useRef({
     tl: makeCorner('tl'), tr: makeCorner('tr'), bl: makeCorner('bl'), br: makeCorner('br'),
   }).current;
 
-  const resetRect = () => {
-    rectRef.current = { x: disp.left, y: disp.top, w: disp.w, h: disp.h };
-    rerender();
-  };
+  const body = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_e, gs) => Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2,
+    onPanResponderTerminationRequest: () => false,
+    onShouldBlockNativeResponder: () => true,
+    onPanResponderGrant: () => { start.current = { ...num.current }; },
+    onPanResponderMove: (_e, gs) => {
+      const s = start.current;
+      const { L, T, R, B } = geo.current;
+      const nx = clamp(s.x + gs.dx, L, R - s.w);
+      const ny = clamp(s.y + gs.dy, T, B - s.h);
+      setRect(nx, ny, s.w, s.h);
+    },
+  })).current;
 
   const doRotate = async () => {
     setBusy(true);
@@ -128,8 +132,8 @@ export default function ImageCropper({ visible, uri, width, height, onCancel, on
   const doDone = async () => {
     setBusy(true);
     try {
-      const r = rectRef.current;
-      const px = 1 / disp.scale; // image pixels per screen point
+      const r = num.current;
+      const px = 1 / geo.current.scale;
       let originX = Math.round((r.x - disp.left) * px);
       let originY = Math.round((r.y - disp.top) * px);
       let cropW = Math.round(r.w * px);
@@ -140,50 +144,50 @@ export default function ImageCropper({ visible, uri, width, height, onCancel, on
       cropH = clamp(cropH, 1, work.h - originY);
       const res = await runManipulate(work.uri, [{ crop: { originX, originY, width: cropW, height: cropH } }]);
       onDone(res.uri);
-    } catch {
-      onDone(work.uri);
-    } finally { setBusy(false); }
+    } catch { onDone(work.uri); } finally { setBusy(false); }
   };
 
-  const rect = rectRef.current;
-  const HANDLE = 26;
-  const Handle = ({ corner, style }) => (
-    <View {...cornerResponders[corner].panHandlers}
-      style={[{ position: 'absolute', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, style]}>
-      <View style={styles.handleDot} />
-    </View>
-  );
+  // Derived Animated positions
+  const right = Animated.add(rx, rw);
+  const bottom = Animated.add(ry, rh);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
       <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-        {/* Image */}
         <Image source={{ uri: work.uri }}
           style={{ position: 'absolute', left: disp.left, top: disp.top, width: disp.w, height: disp.h }}
           resizeMode="stretch" />
 
-        {/* Dim mask around the crop rect */}
-        <View pointerEvents="none" style={[styles.mask, { left: 0, top: 0, right: 0, height: rect.y }]} />
-        <View pointerEvents="none" style={[styles.mask, { left: 0, top: rect.y + rect.h, right: 0, bottom: 0 }]} />
-        <View pointerEvents="none" style={[styles.mask, { left: 0, top: rect.y, width: rect.x, height: rect.h }]} />
-        <View pointerEvents="none" style={[styles.mask, { left: rect.x + rect.w, top: rect.y, right: 0, height: rect.h }]} />
+        {/* Dim mask (driven by Animated values) */}
+        <Animated.View pointerEvents="none" style={[styles.mask, { left: 0, top: 0, right: 0, height: ry }]} />
+        <Animated.View pointerEvents="none" style={[styles.mask, { left: 0, top: bottom, right: 0, bottom: 0 }]} />
+        <Animated.View pointerEvents="none" style={[styles.mask, { left: 0, top: ry, width: rx, height: rh }]} />
+        <Animated.View pointerEvents="none" style={[styles.mask, { left: right, top: ry, right: 0, height: rh }]} />
 
-        {/* Crop rectangle (draggable body) */}
-        <View {...bodyResponder.panHandlers}
-          style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderWidth: 2, borderColor: '#fff' }}>
+        {/* Crop rectangle — draggable body */}
+        <Animated.View {...body.panHandlers}
+          style={{ position: 'absolute', left: rx, top: ry, width: rw, height: rh, borderWidth: 2, borderColor: '#fff' }}>
           <View pointerEvents="none" style={[styles.gridV, { left: '33.33%' }]} />
           <View pointerEvents="none" style={[styles.gridV, { left: '66.66%' }]} />
           <View pointerEvents="none" style={[styles.gridH, { top: '33.33%' }]} />
           <View pointerEvents="none" style={[styles.gridH, { top: '66.66%' }]} />
-        </View>
+        </Animated.View>
 
-        {/* Corner handles */}
-        <Handle corner="tl" style={{ left: rect.x - 22, top: rect.y - 22 }} />
-        <Handle corner="tr" style={{ left: rect.x + rect.w - 22, top: rect.y - 22 }} />
-        <Handle corner="bl" style={{ left: rect.x - 22, top: rect.y + rect.h - 22 }} />
-        <Handle corner="br" style={{ left: rect.x + rect.w - 22, top: rect.y + rect.h - 22 }} />
+        {/* Corner handles (Animated positions, stable views) */}
+        <Animated.View {...corners.tl.panHandlers} style={[styles.handle, { left: Animated.subtract(rx, HIT), top: Animated.subtract(ry, HIT) }]}>
+          <View style={styles.handleDot} />
+        </Animated.View>
+        <Animated.View {...corners.tr.panHandlers} style={[styles.handle, { left: Animated.subtract(right, HIT), top: Animated.subtract(ry, HIT) }]}>
+          <View style={styles.handleDot} />
+        </Animated.View>
+        <Animated.View {...corners.bl.panHandlers} style={[styles.handle, { left: Animated.subtract(rx, HIT), top: Animated.subtract(bottom, HIT) }]}>
+          <View style={styles.handleDot} />
+        </Animated.View>
+        <Animated.View {...corners.br.panHandlers} style={[styles.handle, { left: Animated.subtract(right, HIT), top: Animated.subtract(bottom, HIT) }]}>
+          <View style={styles.handleDot} />
+        </Animated.View>
 
         {/* Top bar */}
         <View style={[styles.topBar, { height: TOP_BAR, paddingTop: insets.top }]}>
@@ -234,6 +238,7 @@ const styles = StyleSheet.create({
   mask: { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.6)' },
   gridV: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.4)' },
   gridH: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.4)' },
+  handle: { position: 'absolute', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   handleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', borderWidth: 3, borderColor: '#6366f1' },
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
