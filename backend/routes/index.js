@@ -1843,8 +1843,49 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
   if (!service) return res.status(404).json({ success: false, message: "Service not found" });
 
   const timeToMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const minutesToTime = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
   const dayStart = new Date(appointmentDate + "T00:00:00.000Z");
   const dayEnd   = new Date(appointmentDate + "T23:59:59.999Z");
+
+  // ── Queue (sequential) mode: the server owns the time ──
+  // The UI's "next available slot" can go stale between fetch and tap, causing a
+  // spurious "already booked" error. In sequential mode we recompute the next
+  // free slot right here (authoritative) and book THAT — so the owner can always
+  // add the walk-in and each booking cleanly advances the queue.
+  let finalTime = appointmentTime;
+  let sequentialBooking = false;
+  if (salon.bookingMode === "sequential") {
+    const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayName = DAY_NAMES[new Date(appointmentDate + "T12:00:00").getDay()];
+    const dh = salon.workingHours?.[dayName] || { open: "09:00", close: "20:00" };
+    const pm = (t, fb) => { if (!t || typeof t !== "string") return fb; const [h, m] = t.split(":").map(Number); return (isNaN(h) || isNaN(m)) ? fb : h * 60 + m; };
+    const openMin = pm(dh.open, 9 * 60), closeMin = pm(dh.close, 20 * 60);
+
+    const activeToday = await Booking.find({
+      salonId: salon._id,
+      appointmentDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $in: ["pending", "confirmed", "in_progress"] },
+    }).select("appointmentTime estimatedDuration").lean();
+
+    const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().slice(0, 10);
+    const nowMinutes = nowIST.getUTCHours() * 60 + nowIST.getUTCMinutes();
+    const isToday = appointmentDate === todayIST;
+
+    let nextSlotMin = openMin;
+    for (const b of activeToday) {
+      if (!b.appointmentTime) continue;
+      const be = timeToMinutes(b.appointmentTime) + (b.estimatedDuration || 30);
+      if (be > nextSlotMin) nextSlotMin = be; // queue after the last active booking
+    }
+    if (isToday) nextSlotMin = Math.max(nextSlotMin, nowMinutes + 5);
+
+    if (nextSlotMin + service.duration > closeMin) {
+      return res.status(409).json({ success: false, message: "No free slot left for that day. Please choose another day." });
+    }
+    finalTime = minutesToTime(nextSlotMin);
+    sequentialBooking = true;
+  }
 
   // Fix 3: per-barber overlap (same logic as online path)
   const { barberId: walkInBarberId } = req.body;
@@ -1865,7 +1906,7 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
         status: { $in: ["pending", "confirmed", "in_progress"] },
         appointmentTime: { $exists: true },
       }).select("appointmentTime estimatedDuration").lean();
-      const newStart2 = timeToMinutes(appointmentTime);
+      const newStart2 = timeToMinutes(finalTime);
       const newEnd2   = newStart2 + service.duration;
       if (!conflict || !overlaps(conflict, newStart2, newEnd2)) {
         assignedBarberId = b._id; break;
@@ -1885,7 +1926,7 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
       appointmentDate: { $gte: dayStart, $lte: dayEnd },
       status: { $in: ["pending", "confirmed", "in_progress"] },
     }).select("appointmentTime estimatedDuration").lean();
-    const ns = timeToMinutes(appointmentTime);
+    const ns = timeToMinutes(finalTime);
     const ne = ns + service.duration;
     if (barberBooks.some(b => overlaps(b, ns, ne))) {
       return res.status(409).json({ success: false, message: "This stylist is already booked at that time" });
@@ -1897,7 +1938,10 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
   // skipped and two walk-ins at the same time would both succeed. Enforce a
   // capacity limit (= active barbers, or 1 for a solo owner) across ALL
   // active bookings that overlap this time — for BOTH walk-in and online.
-  {
+  // Skipped for sequential mode: finalTime was computed to sit AFTER every
+  // active booking, so it is guaranteed free and this guard would only produce
+  // a false "already booked" from stale client state.
+  if (!sequentialBooking) {
     const Barber = require("../models/Barber");
     const activeBarbers = await Barber.countDocuments({ salonId: salon._id, isActive: true });
     const capacity = Math.max(1, activeBarbers);
@@ -1906,7 +1950,7 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
       appointmentDate: { $gte: dayStart, $lte: dayEnd },
       status: { $in: ["pending", "confirmed", "in_progress"] },
     }).select("appointmentTime estimatedDuration").lean();
-    const ns = timeToMinutes(appointmentTime);
+    const ns = timeToMinutes(finalTime);
     const ne = ns + service.duration;
     const overlappingCount = dayBookings.filter(b => b.appointmentTime && overlaps(b, ns, ne)).length;
     if (overlappingCount >= capacity) {
@@ -1925,7 +1969,7 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
     customerPhone:    customerPhone.trim(),
     barberId:         assignedBarberId || null,
     appointmentDate:  new Date(appointmentDate + "T12:00:00.000Z"),
-    appointmentTime,
+    appointmentTime:  finalTime,
     estimatedDuration: service.duration,
     servicePrice:     service.basePrice,
     totalAmount:      service.basePrice,
@@ -1953,10 +1997,25 @@ router.post("/owner/bookings", authenticateOwner, idempotency, checkSubscription
       sendExpoPush(
         owner.pushToken,
         "🚶 Walk-in Booking Added",
-        `${customerName} — ${service.name} at ${appointmentTime}`,
+        `${customerName} — ${service.name} at ${finalTime}`,
         { bookingId: booking._id.toString(), type: "walk_in_booking" },
         { channelId: "new_booking" }
       ).catch(() => {});
+    }
+  } catch {}
+
+  // Fire-and-forget WhatsApp confirmation to the walk-in customer
+  try {
+    const { sendBookingConfirmation } = require("../utils/whatsapp");
+    if (customerPhone?.trim()) {
+      sendBookingConfirmation({
+        phone: customerPhone.trim(),
+        customerName: customerName.trim(),
+        salonName: salon.name,
+        serviceName: service.name,
+        date: new Date(appointmentDate + "T12:00:00.000Z").toLocaleDateString("en-IN"),
+        time: finalTime,
+      }).catch(() => {});
     }
   } catch {}
 
