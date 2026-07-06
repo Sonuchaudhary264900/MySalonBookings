@@ -344,6 +344,7 @@ exports.updateSalon = async (req, res) => {
       name, phone, email, address, city, state, pincode,
       location, workingHours, description,
       businessType, servedGender, offeredCategories, kidsHaircut, atHomeServices, categoryImages,
+      categoryGenders,
     } = req.body;
 
     const salon = await Business.findOne({ ownerId: req.owner._id });
@@ -389,6 +390,10 @@ exports.updateSalon = async (req, res) => {
     if (categoryImages && typeof categoryImages === 'object') {
       salon.categoryImages = categoryImages;
       salon.markModified('categoryImages');
+    }
+    if (categoryGenders && typeof categoryGenders === 'object') {
+      salon.categoryGenders = categoryGenders;
+      salon.markModified('categoryGenders');
     }
 
     if (location && location.latitude && location.longitude) {

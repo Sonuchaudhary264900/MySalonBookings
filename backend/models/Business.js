@@ -316,6 +316,8 @@ locality: { type: String, default: null }, // reverse-geocoded suburb/village fr
     kidsHaircut: { type: Boolean, default: false },
     atHomeServices: { type: Boolean, default: false },
     categoryImages: { type: Map, of: String, default: {} },
+    // Owner-declared gender for each custom category label → 'male' | 'female' | 'both'
+    categoryGenders: { type: Map, of: String, default: {} },
 
     // ==========================================
     // SERVICES & STAFF

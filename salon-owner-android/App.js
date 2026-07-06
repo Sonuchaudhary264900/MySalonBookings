@@ -289,7 +289,10 @@ function MainTabs() {
     <Tab.Navigator
       tabBarPosition="bottom"
       screenOptions={({ route }) => ({
-        swipeEnabled: true,
+        // Disable horizontal tab-swipe on Services — its category/subcategory
+        // circle rows scroll horizontally and would otherwise flip to the
+        // Analytics/Messages tab mid-swipe.
+        swipeEnabled: route.name !== 'Services',
         animationEnabled: true,
         tabBarStyle: {
           backgroundColor: theme.card,

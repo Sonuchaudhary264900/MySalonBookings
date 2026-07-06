@@ -95,6 +95,11 @@ const cb = StyleSheet.create({
 
 // Derive who a service is for, from its category label (category defines gender)
 function genderForCategory(catLabel, salon) {
+  // Owner-declared gender for a custom category wins over label heuristics
+  const declared = salon?.categoryGenders?.[catLabel];
+  if (declared === 'male')   return ['male'];
+  if (declared === 'female') return ['female'];
+  if (declared === 'both')   return ['male', 'female'];
   if (/\(men\)/i.test(catLabel) || /\bmen\b/i.test(catLabel) || /beard|barber/i.test(catLabel)) return ['male'];
   if (/\(women\)/i.test(catLabel) || /\bwomen\b/i.test(catLabel) || /bridal|ladies/i.test(catLabel)) return ['female'];
   if (salon?.servedGender === 'male') return ['male'];
@@ -193,7 +198,8 @@ function CreateBucketModal({ visible, kind, onClose, onCreate, creating }) {
   const { theme } = useTheme();
   const [name, setName]     = useState('');
   const [imgUri, setImgUri] = useState(null);
-  useEffect(() => { if (visible) { setName(''); setImgUri(null); } }, [visible]);
+  const [gender, setGender] = useState('');
+  useEffect(() => { if (visible) { setName(''); setImgUri(null); setGender(''); } }, [visible]);
   const pick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showError('Permission denied', 'Gallery access is required'); return; }
@@ -215,13 +221,34 @@ function CreateBucketModal({ visible, kind, onClose, onCreate, creating }) {
           </TouchableOpacity>
           <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>Name *</Text>
           <TextInput value={name} onChangeText={setName} placeholder={kind === 'category' ? 'e.g. Nail Art' : 'e.g. Premium Haircut'} placeholderTextColor={theme.placeholder}
-            style={{ borderWidth: 1.5, borderColor: theme.inputBorder, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 15, color: theme.text, backgroundColor: theme.input, marginBottom: 18 }} autoFocus />
+            style={{ borderWidth: 1.5, borderColor: theme.inputBorder, borderRadius: 12, paddingHorizontal: 13, height: 46, fontSize: 15, color: theme.text, backgroundColor: theme.input, marginBottom: kind === 'category' ? 14 : 18 }} autoFocus />
+
+          {/* Category gender — required, decides who services in this category serve */}
+          {kind === 'category' && (
+            <>
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.subText, marginBottom: 6 }}>This category is for *</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 18 }}>
+                {[['male', 'man-outline', 'Men'], ['female', 'woman-outline', 'Women'], ['both', 'people-outline', 'Both']].map(([val, icon, lbl]) => {
+                  const active = gender === val;
+                  return (
+                    <TouchableOpacity key={val} onPress={() => setGender(val)} activeOpacity={0.8}
+                      style={{ flex: 1, height: 44, borderRadius: 12, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        borderColor: active ? '#6366f1' : theme.inputBorder, backgroundColor: active ? '#6366f1' : 'transparent' }}>
+                      <Ionicons name={icon} size={14} color={active ? '#fff' : theme.subText} />
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : theme.subText }}>{lbl}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={onClose} style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: theme.inputBorder, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 13.5, fontWeight: '600', color: theme.subText }}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => name.trim() && onCreate(name.trim(), imgUri)} disabled={!name.trim() || creating}
-              style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', opacity: name.trim() && !creating ? 1 : 0.5 }}>
+            <TouchableOpacity onPress={() => { const ok = name.trim() && (kind !== 'category' || gender); if (ok) onCreate(name.trim(), imgUri, gender); }} disabled={!name.trim() || (kind === 'category' && !gender) || creating}
+              style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', opacity: (name.trim() && (kind !== 'category' || gender) && !creating) ? 1 : 0.5 }}>
               {creating ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '800' }}>Create</Text>}
             </TouchableOpacity>
           </View>
@@ -1404,8 +1431,8 @@ export default function ServicesScreen() {
     ]);
   };
 
-  // Create a category or a service bucket (name + optional image)
-  const handleCreateBucket = async (name, imgUri) => {
+  // Create a category or a service bucket (name + optional image + gender)
+  const handleCreateBucket = async (name, imgUri, gender) => {
     setBucketSaving(true);
     try {
       let url = '';
@@ -1414,7 +1441,11 @@ export default function ServicesScreen() {
       const key = kind === 'category' ? name : `${selectedCatLabel}::${name}`;
       const next = { ...(salon?.categoryImages || {}) };
       next[key] = url || next[key] || '_'; // sentinel keeps the bucket even without a photo
-      await updateSalon({ categoryImages: next });
+      const patch = { categoryImages: next };
+      if (kind === 'category' && gender) {
+        patch.categoryGenders = { ...(salon?.categoryGenders || {}), [name]: gender };
+      }
+      await updateSalon(patch);
       setCreateBucket(null);
       if (kind === 'category') handleCatSelect(name);
       showSuccess('Created', kind === 'category' ? `Category "${name}" added` : `"${name}" added — toggle it on to set price`);

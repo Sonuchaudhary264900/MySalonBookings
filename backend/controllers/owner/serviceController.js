@@ -25,6 +25,20 @@ function normalizeApplicableFor(raw, salonServedGender) {
   return ['male'];
 }
 
+// ── Duplicate detection ─────────────────────────────────────────────────────
+// Two services with the SAME name are only a real duplicate when they also
+// share the same category AND overlap in gender. This lets a "Haircut" for
+// Women coexist with a "Haircut" for Men (different category or gender).
+function findGenderAwareDuplicate(sameNameServices, category, applicableForArr) {
+  const cat = (category || '').trim();
+  return sameNameServices.find(s => {
+    const sCat = (s.category || '').trim();
+    if (sCat !== cat) return false;
+    const sGenders = s.applicableFor || [];
+    return sGenders.some(g => applicableForArr.includes(g));
+  });
+}
+
 // ===================================================
 // CREATE SERVICE
 // ===================================================
@@ -46,11 +60,13 @@ exports.createService = async (req, res) => {
 
     const normalizedApplicableFor = normalizeApplicableFor(applicableFor, salon.servedGender);
 
-    // Prevent duplicate service name within same salon
-    const dupe = await Service.findOne({ salonId: salon._id, name: name.trim() });
+    // Prevent duplicate service within same salon — but only when name,
+    // category AND gender overlap (so Men "Haircut" and Women "Haircut" coexist).
+    const sameName = await Service.find({ salonId: salon._id, name: name.trim() }).select('category applicableFor');
+    const dupe = findGenderAwareDuplicate(sameName, category, normalizedApplicableFor);
     if (dupe) {
       return res.status(409).json(
-        formatErrorResponse('A service with this name already exists. Update the existing one instead.', 409)
+        formatErrorResponse('A service with this name already exists in this category. Update the existing one instead.', 409)
       );
     }
 
@@ -180,7 +196,9 @@ exports.bulkUpsertServices = async (req, res) => {
         );
         updated++;
       } else {
-        const existing = await Service.findOne({ salonId: salon._id, name: u.name });
+        const uApplicableFor = normalizeApplicableFor(u.applicableFor, salon.servedGender);
+        const sameName = await Service.find({ salonId: salon._id, name: u.name }).select('category applicableFor');
+        const existing = findGenderAwareDuplicate(sameName, u.category, uApplicableFor);
         if (existing) {
           await Service.findByIdAndUpdate(existing._id, {
             ...(u.basePrice !== undefined && { basePrice: u.basePrice }),
@@ -198,7 +216,7 @@ exports.bulkUpsertServices = async (req, res) => {
             basePrice: u.basePrice || 0,
             duration: u.duration || 30,
             isActive: true,
-            applicableFor: normalizeApplicableFor(u.applicableFor, salon.servedGender),
+            applicableFor: uApplicableFor,
             photos: Array.isArray(u.photos) ? u.photos.slice(0,1) : [],
           });
           if (!salon.services.includes(svc._id)) salon.services.push(svc._id);

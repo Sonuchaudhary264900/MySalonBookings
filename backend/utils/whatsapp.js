@@ -3,6 +3,11 @@ const https = require('https');
 const TOKEN      = process.env.WHATSAPP_TOKEN;
 const PHONE_ID   = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const API_VER    = 'v21.0';
+// Meta approves each template under a specific locale. If yours is "English (US)"
+// it is en_US, plain "English" is en. Mismatch → silent error 132001. Default en,
+// override with WHATSAPP_LANG, and we auto-retry the alternate on a language error.
+const LANG       = process.env.WHATSAPP_LANG || 'en';
+const ALT_LANG   = LANG === 'en' ? 'en_US' : 'en';
 
 // Normalize to E.164 — assumes Indian numbers if no country code
 function toE164(phone) {
@@ -18,7 +23,7 @@ function post(body) {
   return new Promise((resolve) => {
     if (!TOKEN || !PHONE_ID) {
       console.warn('[whatsapp] WHATSAPP_TOKEN or WHATSAPP_PHONE_NUMBER_ID not set — skipping');
-      return resolve(null);
+      return resolve({ ok: false, skipped: true, error: 'not_configured' });
     }
     const payload = JSON.stringify(body);
     const req = https.request(
@@ -36,23 +41,38 @@ function post(body) {
         let raw = '';
         res.on('data', (c) => (raw += c));
         res.on('end', () => {
-          try {
-            const json = JSON.parse(raw);
-            if (res.statusCode >= 400) console.error('[whatsapp] API error:', json);
-            resolve(json);
-          } catch {
-            resolve(null);
+          let json = null;
+          try { json = JSON.parse(raw); } catch { /* non-JSON */ }
+          if (res.statusCode >= 400) {
+            console.error('[whatsapp] API error:', json || raw);
+            return resolve({ ok: false, status: res.statusCode, error: json?.error || raw });
           }
+          resolve({ ok: true, status: res.statusCode, data: json });
         });
       }
     );
     req.on('error', (e) => {
       console.error('[whatsapp] request error:', e.message);
-      resolve(null);
+      resolve({ ok: false, error: e.message });
     });
     req.write(payload);
     req.end();
   });
+}
+
+function buildTemplatePayload(to, template, components, lang) {
+  return {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'template',
+    template: {
+      name: template,
+      language: { code: lang },
+      components: [
+        { type: 'body', parameters: components.map((v) => ({ type: 'text', text: String(v) })) },
+      ],
+    },
+  };
 }
 
 /**
@@ -67,23 +87,18 @@ function post(body) {
  */
 async function sendTemplate(phone, template, components) {
   const to = toE164(phone);
-  if (!to) return null;
+  if (!to) return { ok: false, error: 'invalid_phone' };
 
-  return post({
-    messaging_product: 'whatsapp',
-    to,
-    type: 'template',
-    template: {
-      name: template,
-      language: { code: 'en' },
-      components: [
-        {
-          type: 'body',
-          parameters: components.map((v) => ({ type: 'text', text: String(v) })),
-        },
-      ],
-    },
-  });
+  let res = await post(buildTemplatePayload(to, template, components, LANG));
+
+  // Auto-retry with the alternate locale if the template/language pairing is wrong
+  // (Meta error 132001: "template name does not exist in the translation").
+  const code = res?.error?.code;
+  if (!res?.ok && (code === 132001 || code === 132000)) {
+    console.warn(`[whatsapp] template "${template}" not found in "${LANG}" — retrying "${ALT_LANG}"`);
+    res = await post(buildTemplatePayload(to, template, components, ALT_LANG));
+  }
+  return res;
 }
 
 /**

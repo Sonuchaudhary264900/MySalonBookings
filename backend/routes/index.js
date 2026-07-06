@@ -3156,6 +3156,29 @@ router.get("/owner/customers", authenticateOwner, asyncHandler(async (req, res) 
   res.json({ success: true, data: { customers: paginated, total, page: custP, limit: custL } });
 }));
 
+// GET /owner/whatsapp/test?phone=... — send a test WhatsApp template and return
+// Meta's raw response so delivery failures (token expired / template / language)
+// are visible instead of failing silently.
+router.get("/owner/whatsapp/test", authenticateOwner, asyncHandler(async (req, res) => {
+  const { sendBookingConfirmation } = require("../utils/whatsapp");
+  const phone = (req.query.phone || req.owner.phone || "").trim();
+  if (!phone) return res.status(400).json({ success: false, message: "No phone provided" });
+  const result = await sendBookingConfirmation({
+    phone,
+    customerName: "Test",
+    salonName: "GlowLoox",
+    serviceName: "Haircut",
+    date: new Date().toLocaleDateString("en-IN"),
+    time: "12:00 PM",
+  });
+  res.json({
+    success: !!result?.ok,
+    to: phone,
+    configured: !result?.skipped,
+    result,
+  });
+}));
+
 // POST /owner/customers — manually add a customer
 router.post("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
   const Customer = require("../models/Customer");
