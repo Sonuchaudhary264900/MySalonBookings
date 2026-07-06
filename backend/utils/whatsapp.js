@@ -19,7 +19,7 @@ function toE164(phone) {
   return `+${digits}`;
 }
 
-function post(body) {
+function post(body, subPath = "messages") {
   return new Promise((resolve) => {
     if (!TOKEN || !PHONE_ID) {
       console.warn('[whatsapp] WHATSAPP_TOKEN or WHATSAPP_PHONE_NUMBER_ID not set — skipping');
@@ -29,7 +29,7 @@ function post(body) {
     const req = https.request(
       {
         hostname: 'graph.facebook.com',
-        path: `/${API_VER}/${PHONE_ID}/messages`,
+        path: `/${API_VER}/${PHONE_ID}/${subPath}`,
         method: 'POST',
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -146,4 +146,15 @@ async function sendDelayAlert({ phone, customerName, serviceName, salonName, ori
   return sendTemplate(phone, template, [customerName, serviceName, salonName, originalTime, tentativeTime, String(delayMinutes)]);
 }
 
-module.exports = { sendBookingConfirmation, sendReminder10min, sendReminder1h, sendDelayAlert };
+/**
+ * Register the WhatsApp sender number on the Cloud API.
+ * Fixes error #133010 ("Account not registered"). Requires the number's
+ * 6-digit two-step-verification PIN (or a new PIN to set if none exists).
+ */
+async function registerSender(pin) {
+  const cleanPin = String(pin || '').replace(/\D/g, '');
+  if (cleanPin.length !== 6) return { ok: false, error: 'pin_must_be_6_digits' };
+  return post({ messaging_product: 'whatsapp', pin: cleanPin }, 'register');
+}
+
+module.exports = { sendBookingConfirmation, sendReminder10min, sendReminder1h, sendDelayAlert, registerSender };

@@ -3238,6 +3238,16 @@ router.get("/owner/whatsapp/test", authenticateOwner, asyncHandler(async (req, r
   });
 }));
 
+// POST /owner/whatsapp/register — register the WhatsApp sender number on the
+// Cloud API (fixes error #133010 "Account not registered"). Needs the 6-digit
+// two-step-verification PIN.
+router.post("/owner/whatsapp/register", authenticateOwner, asyncHandler(async (req, res) => {
+  const { registerSender } = require("../utils/whatsapp");
+  const pin = (req.body?.pin || req.query?.pin || "").toString();
+  const result = await registerSender(pin);
+  res.json({ success: !!result?.ok, result });
+}));
+
 // POST /owner/customers — manually add a customer
 router.post("/owner/customers", authenticateOwner, asyncHandler(async (req, res) => {
   const Customer = require("../models/Customer");

@@ -53,6 +53,30 @@ export default function DeveloperScreen() {
 
   const [waPhone, setWaPhone] = useState('');
   const [waTesting, setWaTesting] = useState(false);
+  const [waPin, setWaPin] = useState('');
+  const [waRegistering, setWaRegistering] = useState(false);
+
+  const registerWhatsApp = async () => {
+    if (waPin.replace(/\D/g, '').length !== 6) {
+      Alert.alert('PIN required', 'Enter the 6-digit two-step-verification PIN for your WhatsApp number.');
+      return;
+    }
+    setWaRegistering(true);
+    try {
+      const res = await api.post('/owner/whatsapp/register', { pin: waPin.replace(/\D/g, '') });
+      if (res.data?.success) {
+        Alert.alert('Registered ✅', 'Your WhatsApp number is now registered. Try "Send Test WhatsApp" again.');
+      } else {
+        const err = res.data?.result?.error;
+        const msg = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err || 'Failed');
+        Alert.alert('Registration failed', msg);
+      }
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.message || e.message || 'Request failed');
+    } finally {
+      setWaRegistering(false);
+    }
+  };
 
   const sendWhatsAppTest = async () => {
     setWaTesting(true);
@@ -236,6 +260,26 @@ export default function DeveloperScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 12, backgroundColor: '#25D366', opacity: waTesting ? 0.6 : 1 }}>
               {waTesting ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-whatsapp" size={18} color="#fff" />}
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{waTesting ? 'Sending…' : 'Send Test WhatsApp'}</Text>
+            </TouchableOpacity>
+
+            {/* Register sender — fixes error #133010 "Account not registered" */}
+            <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+            <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 10 }}>
+              Getting "Account not registered" (#133010)? Register your WhatsApp number once with its 6-digit two-step PIN.
+            </Text>
+            <TextInput
+              value={waPin}
+              onChangeText={t => setWaPin(t.replace(/\D/g, '').slice(0, 6))}
+              placeholder="6-digit WhatsApp PIN"
+              placeholderTextColor={theme.subText}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{ borderWidth: 1.5, borderColor: theme.border, borderRadius: 10, paddingHorizontal: 12, height: 44, color: theme.text, backgroundColor: theme.bg, marginBottom: 10 }}
+            />
+            <TouchableOpacity onPress={registerWhatsApp} disabled={waRegistering}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: '#25D366', opacity: waRegistering ? 0.6 : 1 }}>
+              {waRegistering ? <ActivityIndicator color="#25D366" size="small" /> : <Ionicons name="shield-checkmark-outline" size={18} color="#25D366" />}
+              <Text style={{ color: '#25D366', fontSize: 14, fontWeight: '800' }}>{waRegistering ? 'Registering…' : 'Register WhatsApp Number'}</Text>
             </TouchableOpacity>
           </View>
 
