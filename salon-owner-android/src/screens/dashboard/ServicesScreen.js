@@ -36,7 +36,7 @@ const getSubImg = (catLabel, subLabel, salon, catalogMap) => {
 };
 
 // ── CircleButton — RN port of the website's 54px category circle ──
-function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSelect, onLongPress, onEditImage }) {
+function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSelect, onLongPress, onEditImage, size = 68 }) {
   const { theme } = useTheme();
   const [broken, setBroken] = useState(false);
   const showImg = !isAll && !isAdd && !!imgSrc && !broken;
@@ -46,6 +46,7 @@ function CircleButton({ label, imgSrc, isSelected, isAll, isAdd, uploading, onSe
       <View>
         <View style={[
           cb.circle,
+          { width: size, height: size, borderRadius: size / 2 },
           isSelected ? cb.circleSelected : { borderColor: 'rgba(128,128,160,0.25)' },
           !showImg && !isAll && !isAdd && { backgroundColor: isSelected ? '#6366f1' : theme.cardAlt },
           isAdd && { backgroundColor: 'rgba(99,102,241,0.08)', borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(129,140,248,0.55)' },
@@ -1444,6 +1445,46 @@ export default function ServicesScreen() {
         </View>
       </View>
 
+      {/* ── Pinned category / subcategory circle rows (do NOT scroll with the page) ── */}
+      {!loading && allCategories.length > 0 && (
+        <View style={{ backgroundColor: theme.bg, paddingTop: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+          {/* Level 1: category circles */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} directionalLockEnabled nestedScrollEnabled
+            contentContainerStyle={{ paddingVertical: 2, paddingHorizontal: 12 }}>
+            <CircleButton label="All" isAll size={65} isSelected={!selectedCatLabel} onSelect={() => handleCatSelect(null)} />
+            {allCategories.map(label => (
+              <CircleButton key={label} label={label} size={65}
+                imgSrc={getCatImg(label, salon, catalogMap)}
+                isSelected={selectedCatLabel === label}
+                uploading={!!circleUploading[label]}
+                onLongPress={() => handleCircleImage(label)}
+                onEditImage={() => handleCircleImage(label)}
+                onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
+            ))}
+            <CircleButton label="New" isAdd size={65} onSelect={() => setCreateBucket({ kind: 'category' })} />
+          </ScrollView>
+
+          {/* Level 2: subcategory circles (only when catalog defines sections) */}
+          {selectedCatLabel && subcategoriesForSelected.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} directionalLockEnabled nestedScrollEnabled
+              contentContainerStyle={{ paddingVertical: 2, paddingHorizontal: 12 }}>
+              <CircleButton label="All" size={78} imgSrc={getCatImg(selectedCatLabel, salon, catalogMap)}
+                isSelected={!selectedSubLabel} onSelect={() => setSelectedSubLabel(null)} />
+              {subcategoriesForSelected.map(sub => (
+                <CircleButton key={sub} label={sub} size={78}
+                  imgSrc={getSubImg(selectedCatLabel, sub, salon, catalogMap)}
+                  isSelected={selectedSubLabel === sub}
+                  uploading={!!circleUploading[`${selectedCatLabel}::${sub}`]}
+                  onLongPress={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
+                  onEditImage={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
+                  onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
+              ))}
+              <CircleButton label="New" isAdd size={78} onSelect={() => setCreateBucket({ kind: 'subcategory' })} />
+            </ScrollView>
+          )}
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
       ) : (
@@ -1455,41 +1496,6 @@ export default function ServicesScreen() {
           {/* Stats bar */}
           {services.length > 0 && (
             <StatsBar total={services.length} active={activeCount} inactive={inactiveCount} theme={theme} />
-          )}
-
-          {/* ── Level 1: category circles ── */}
-          {allCategories.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 2 }}>
-              <CircleButton label="All" isAll isSelected={!selectedCatLabel} onSelect={() => handleCatSelect(null)} />
-              {allCategories.map(label => (
-                <CircleButton key={label} label={label}
-                  imgSrc={getCatImg(label, salon, catalogMap)}
-                  isSelected={selectedCatLabel === label}
-                  uploading={!!circleUploading[label]}
-                  onLongPress={() => handleCircleImage(label)}
-                  onEditImage={() => handleCircleImage(label)}
-                  onSelect={() => handleCatSelect(selectedCatLabel === label ? null : label)} />
-              ))}
-              <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'category' })} />
-            </ScrollView>
-          )}
-
-          {/* ── Level 2: subcategory circles (only when catalog defines sections) ── */}
-          {selectedCatLabel && subcategoriesForSelected.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 2 }}>
-              <CircleButton label="All" imgSrc={getCatImg(selectedCatLabel, salon, catalogMap)}
-                isSelected={!selectedSubLabel} onSelect={() => setSelectedSubLabel(null)} />
-              {subcategoriesForSelected.map(sub => (
-                <CircleButton key={sub} label={sub}
-                  imgSrc={getSubImg(selectedCatLabel, sub, salon, catalogMap)}
-                  isSelected={selectedSubLabel === sub}
-                  uploading={!!circleUploading[`${selectedCatLabel}::${sub}`]}
-                  onLongPress={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
-                  onEditImage={() => handleCircleImage(`${selectedCatLabel}::${sub}`)}
-                  onSelect={() => setSelectedSubLabel(selectedSubLabel === sub ? null : sub)} />
-              ))}
-              <CircleButton label="New" isAdd onSelect={() => setCreateBucket({ kind: 'subcategory' })} />
-            </ScrollView>
           )}
 
           {/* ── Breadcrumb ── */}
