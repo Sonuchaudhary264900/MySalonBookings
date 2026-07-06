@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { showSuccess, showError } from '../../utils/toast';
+import ImageCropper from '../../components/ImageCropper';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const NUM_COLS = 3;
@@ -361,6 +362,7 @@ export default function GalleryScreen() {
   const [lightbox, setLightbox] = useState(null);
   const [showReels, setShowReels] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [cropTarget, setCropTarget] = useState(null); // { uri, width, height }
 
   const fetchMedia = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -391,42 +393,51 @@ export default function GalleryScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showError('Permission Denied', 'Please allow media library access'); return; }
 
-    // allowsEditing opens the native crop UI for photos and the trim UI for
-    // videos. (Cropping requires single selection, so multi-select is off.)
+    // Photos → our custom in-app cropper (safe-area aware). Videos → native
+    // trimmer via allowsEditing (video trimming can't be done in JS).
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: type === 'image'
         ? ImagePicker.MediaTypeOptions.Images
         : ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: true,
-      quality: type === 'image' ? 0.85 : 1,
+      allowsEditing: type === 'video',
+      quality: type === 'image' ? 1 : 1,
       videoMaxDuration: 60,
     });
     if (result.canceled) return;
 
+    if (type === 'image') {
+      const asset = result.assets[0];
+      setCropTarget({ uri: asset.uri, width: asset.width, height: asset.height });
+      return;
+    }
+
+    // Video upload
     setUploading(true);
     try {
-      if (type === 'image') {
-        for (const asset of result.assets) {
-          const fd = new FormData();
-          fd.append('image', {
-            uri: asset.uri,
-            type: asset.mimeType || 'image/jpeg',
-            name: asset.fileName || `photo_${Date.now()}.jpg`,
-          });
-          await api.post('/owner/gallery', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        }
-        showSuccess('Uploaded', `${result.assets.length} photo${result.assets.length > 1 ? 's' : ''} uploaded`);
-      } else {
-        const asset = result.assets[0];
-        const fd = new FormData();
-        fd.append('video', {
-          uri: asset.uri,
-          type: asset.mimeType || 'video/mp4',
-          name: asset.fileName || `video_${Date.now()}.mp4`,
-        });
-        await api.post('/owner/gallery/video', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        showSuccess('Uploaded', 'Video uploaded successfully');
-      }
+      const asset = result.assets[0];
+      const fd = new FormData();
+      fd.append('video', {
+        uri: asset.uri,
+        type: asset.mimeType || 'video/mp4',
+        name: asset.fileName || `video_${Date.now()}.mp4`,
+      });
+      await api.post('/owner/gallery/video', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showSuccess('Uploaded', 'Video uploaded successfully');
+      fetchMedia(true);
+    } catch (err) {
+      showError('Error', err.response?.data?.message || 'Upload failed');
+    } finally { setUploading(false); }
+  };
+
+  // Called by the cropper with the final cropped image uri
+  const uploadCroppedPhoto = async (croppedUri) => {
+    setCropTarget(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', { uri: croppedUri, type: 'image/jpeg', name: `photo_${Date.now()}.jpg` });
+      await api.post('/owner/gallery', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showSuccess('Uploaded', 'Photo uploaded');
       fetchMedia(true);
     } catch (err) {
       showError('Error', err.response?.data?.message || 'Upload failed');
@@ -639,6 +650,16 @@ export default function GalleryScreen() {
 
       <ReelsInsightsModal visible={showReels} onClose={() => setShowReels(false)} theme={theme} />
       <UploadSheet visible={showUpload} onClose={() => setShowUpload(false)} onPick={pickMedia} theme={theme} />
+      {cropTarget && (
+        <ImageCropper
+          visible={!!cropTarget}
+          uri={cropTarget.uri}
+          width={cropTarget.width}
+          height={cropTarget.height}
+          onCancel={() => setCropTarget(null)}
+          onDone={uploadCroppedPhoto}
+        />
+      )}
 
       {loading ? (
         <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
