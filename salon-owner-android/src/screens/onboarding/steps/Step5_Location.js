@@ -105,8 +105,8 @@ export default function Step5_Location() {
   };
 
   const handleNext = () => {
-    if (!address.trim()) { setError('Please enter or detect your address'); return; }
-    if (!city.trim()) { setError('Please enter your city'); return; }
+    if (address.trim().length < 5) { setError('Please enter a complete address (at least 5 characters)'); return; }
+    if (city.trim().length < 2) { setError('Please enter your city'); return; }
     setError('');
     nextStep();
   };

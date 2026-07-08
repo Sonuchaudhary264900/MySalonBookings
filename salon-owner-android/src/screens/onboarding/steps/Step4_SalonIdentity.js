@@ -67,7 +67,7 @@ export default function Step4_SalonIdentity() {
 
   const handleNext = () => {
     const effGender = lockedGender || servedGender;
-    if (!salonName.trim()) { setError(`${nameConfig.label} is required`); return; }
+    if (salonName.trim().length < 3) { setError(`${nameConfig.label} must be at least 3 characters`); return; }
     if (!effGender)        { setError('Please select who you serve'); return; }
     if (!description.trim()) { setError('Add a short description'); return; }
     if (lockedGender && servedGender !== lockedGender) setServedGender(lockedGender);

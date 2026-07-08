@@ -108,14 +108,16 @@ export default function Step10_Preview() {
   const bizLabel   = getBizLabel(businessType);
   const coverPhoto = photos.find(p => p.isCover)?.url || photos[0]?.url || '';
 
-  // Same 6-item checklist as the website (step numbers map to our 7-step flow)
+  // Same 6-item checklist as the website (step numbers map to our 7-step flow).
+  // The `ok` conditions mirror the backend validator so a green checklist
+  // guarantees the submit will pass (no surprise "check your input" error).
   const checks = [
-    { label: `Your name — ${ownerName || user?.name || '—'}`,      ok: !!(ownerName || user?.name), step: 1 },
-    { label: `Business type — ${bizLabel}`,                        ok: !!businessType,              step: 2 },
-    { label: `${bizLabel} name — ${salonName || '—'}`,             ok: !!salonName,                 step: 3 },
-    { label: `Location — ${city || district || '—'}`,              ok: !!(address && stateName),    step: 4 },
-    { label: `Hours — ${formatTime12(openTime) || '—'}`,           ok: workingDays.length > 0,      step: 5 },
-    { label: `${photos.length} photo${photos.length !== 1 ? 's' : ''} added`, ok: photos.length > 0, step: 6 },
+    { label: `Your name — ${ownerName || user?.name || '—'}`,      ok: !!(ownerName || user?.name),                    step: 1 },
+    { label: `Business type — ${bizLabel}`,                        ok: !!businessType,                                 step: 2 },
+    { label: `${bizLabel} name — ${salonName || '—'}`,             ok: salonName.trim().length >= 3,                   step: 3 },
+    { label: `Location — ${city || district || '—'}`,              ok: address.trim().length >= 5 && city.trim().length >= 2, step: 4 },
+    { label: `Hours — ${formatTime12(openTime) || '—'}`,           ok: workingDays.length > 0,                         step: 5 },
+    { label: `${photos.length} photo${photos.length !== 1 ? 's' : ''} added`, ok: photos.length > 0,                    step: 6 },
   ];
 
   const canSubmit = checks.every(c => c.ok);
@@ -141,7 +143,7 @@ export default function Step10_Preview() {
         pincode,
         description,
         businessType: businessType || 'salon',
-        servedGender,
+        servedGender: servedGender || 'unisex',
         workingHours,
         offeredCategories: [],
         photos: photos.map((p, i) => ({ url: p.url, publicId: p.publicId || '', isCover: Boolean(p.isCover) || i === 0 })),
@@ -156,14 +158,24 @@ export default function Step10_Preview() {
       await createSalon(payload);
       setShowCelebration(true);
     } catch (e) {
-      const status = e?.response?.status;
-      const msg    = e?.response?.data?.message || e?.message || 'Please try again.';
-      // Already registered → treat as success, same as the website
-      if (status === 409 && msg.toLowerCase().includes('already')) {
+      const status  = e?.response?.status;
+      const data    = e?.response?.data;
+      const msg     = data?.message || e?.message || 'Please try again.';
+      // Owner already has THIS salon registered → treat as success (idempotent re-submit)
+      if (status === 409 && msg.toLowerCase().includes('already have')) {
         setShowCelebration(true);
-      } else {
-        Alert.alert('Submission Failed', msg);
+        return;
       }
+      // Surface the exact backend validation reasons instead of the generic message,
+      // and point the owner at the step that needs fixing.
+      const details = Array.isArray(data?.errors) && data.errors.length
+        ? data.errors.join('\n• ')
+        : null;
+      Alert.alert(
+        'Submission Failed',
+        details ? `• ${details}` : msg,
+        [{ text: 'OK' }]
+      );
     } finally { setLoading(false); }
   };
 
