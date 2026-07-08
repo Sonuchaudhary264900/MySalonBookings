@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { useOnboarding } from '../../../context/OnboardingContext';
+import { SALON_TYPES } from './Step4_BusinessType';
 
 const { width: W } = Dimensions.get('window');
 
@@ -40,6 +41,7 @@ mk.on('dragend',function(){var p=mk.getLatLng();window.ReactNativeWebView.postMe
 
 export default function Step5_Location() {
   const {
+    businessType,
     lat, setLat, lng, setLng,
     address, setAddress,
     city, setCity,
@@ -48,6 +50,8 @@ export default function Step5_Location() {
     pincode, setPincode,
     nextStep,
   } = useOnboarding();
+
+  const bizLabel = SALON_TYPES.find(t => t.key === businessType)?.label || 'Business';
 
   const [gpsLoading, setGpsLoading]   = useState(false);
   const [accuracy, setAccuracy]       = useState(null);
@@ -114,7 +118,7 @@ export default function Step5_Location() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Salon Location</Text>
+        <Text style={s.title}>{bizLabel} Location</Text>
         <Text style={s.sub}>Help customers find you easily</Text>
 
         {/* GPS Button */}

@@ -153,7 +153,7 @@ export default function SalonRegistrationScreen() {
   const [enableLunch, setEnableLunch] = useState(false);
   const [lunchStart, setLunchStart]   = useState('13:00');
   const [lunchEnd, setLunchEnd]       = useState('14:00');
-  const [workingDays, setWorkingDays] = useState([1,2,3,4,5,6]);
+  const [workingDays, setWorkingDays] = useState([0,1,2,3,4,5,6]);
 
   // Step 4
   const [photos, setPhotos] = useState([]);

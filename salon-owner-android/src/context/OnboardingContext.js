@@ -20,6 +20,7 @@ const DAY_LABEL_TO_KEY = { Mon:'monday', Tue:'tuesday', Wed:'wednesday', Thu:'th
 export const OnboardingProvider = ({ children, initialStep = 1 }) => {
   const [step, setStep] = useState(initialStep);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
   const minStep = 1;
 
   // ── Step 1: Profile ───────────────────────────────────────────
@@ -45,7 +46,7 @@ export const OnboardingProvider = ({ children, initialStep = 1 }) => {
   const [pincode, setPincode]   = useState('');
 
   // ── Step 5: Working Hours ─────────────────────────────────────
-  const [workingDays, setWorkingDays] = useState(['monday','tuesday','wednesday','thursday','friday','saturday']);
+  const [workingDays, setWorkingDays] = useState(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
   const [openTime, setOpenTime]       = useState('09:00');
   const [closeTime, setCloseTime]     = useState('20:00');
   const [lunchBreak, setLunchBreak]   = useState(false);
@@ -94,13 +95,27 @@ export const OnboardingProvider = ({ children, initialStep = 1 }) => {
     };
   };
 
-  const saveDraft = useCallback(async (targetStep) => {
+  const savedTimerRef = useRef(null);
+  const saveDraft = useCallback(async (targetStep, attempt = 0) => {
+    setSaveStatus('saving');
     try {
       await api.put('/owner/onboarding/draft', {
         currentStep: targetStep,
         data: buildDraftData(),
       });
-    } catch { /* silent — never block the user */ }
+      setSaveStatus('saved');
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 1800);
+    } catch {
+      // Never block the user — retry once quietly, then surface a brief "offline" hint.
+      if (attempt < 1) {
+        setTimeout(() => saveDraft(targetStep, attempt + 1), 1200);
+      } else {
+        setSaveStatus('error');
+        clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2200);
+      }
+    }
   }, []);
 
   const saveTimerRef = useRef(null);
@@ -151,7 +166,7 @@ export const OnboardingProvider = ({ children, initialStep = 1 }) => {
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setDraftLoaded(true); });
-    return () => { cancelled = true; clearTimeout(saveTimerRef.current); };
+    return () => { cancelled = true; clearTimeout(saveTimerRef.current); clearTimeout(savedTimerRef.current); };
   }, []);
 
   // Auto-save whenever data changes (after initial restore)
@@ -182,7 +197,7 @@ export const OnboardingProvider = ({ children, initialStep = 1 }) => {
 
   return (
     <OnboardingContext.Provider value={{
-      step, nextStep, prevStep, goToStep, minStep, draftLoaded,
+      step, nextStep, prevStep, goToStep, minStep, draftLoaded, saveStatus,
 
       // Profile
       ownerName, setOwnerName,

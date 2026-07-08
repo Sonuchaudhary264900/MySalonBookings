@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useOnboarding } from '../../../context/OnboardingContext';
+import { SALON_TYPES } from './Step4_BusinessType';
 import api from '../../../services/api';
 
 const { width: W } = Dimensions.get('window');
@@ -33,12 +34,15 @@ async function uploadToCloudinary(uri, resourceType = 'image') {
 
 export default function Step7_Media() {
   const {
+    businessType,
     photos, setPhotos,
     videoUrl, setVideoUrl,
     businessLicenseUrl, setBusinessLicenseUrl,
     businessRegUrl, setBusinessRegUrl,
     nextStep,
   } = useOnboarding();
+
+  const bizLabel = SALON_TYPES.find(t => t.key === businessType)?.label || 'Business';
 
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -123,21 +127,21 @@ export default function Step7_Media() {
   };
 
   const handleNext = () => {
-    if (photos.length === 0) { setError('Please add at least 1 salon photo'); return; }
+    if (photos.length === 0) { setError(`Please add at least 1 ${bizLabel.toLowerCase()} photo`); return; }
     setError('');
     nextStep();
   };
 
   return (
     <ScrollView contentContainerStyle={s.scroll}>
-      <Text style={s.title}>Salon Media</Text>
+      <Text style={s.title}>{bizLabel} Media</Text>
       <Text style={s.sub}>Show customers what your business looks like</Text>
 
       {/* Photos */}
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="images-outline" size={18} color="#818cf8" />
-          <Text style={s.sectionTitle}>Salon Photos</Text>
+          <Text style={s.sectionTitle}>{bizLabel} Photos</Text>
           <Text style={s.sectionReq}>* at least 1</Text>
           <Text style={s.count}>{photos.length}/10</Text>
         </View>
@@ -176,7 +180,7 @@ export default function Step7_Media() {
       <View style={s.section}>
         <View style={s.sectionHeader}>
           <Ionicons name="videocam-outline" size={18} color="#818cf8" />
-          <Text style={s.sectionTitle}>Salon Tour Video</Text>
+          <Text style={s.sectionTitle}>{bizLabel} Tour Video</Text>
           <Text style={s.sectionOpt}>(optional)</Text>
         </View>
         {videoUrl ? (

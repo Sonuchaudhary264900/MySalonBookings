@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
-  Dimensions, Image, StatusBar,
+  Dimensions, Image, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ const { width: W } = Dimensions.get('window');
 
 // Progress percentage per step — same curve as the website (7 steps)
 const STEP_PROGRESS = { 1:14, 2:28, 3:43, 4:57, 5:71, 6:86, 7:100 };
+const STEP_TIME_LEFT = { 1:'~2 min left', 2:'~100 sec left', 3:'~80 sec left', 4:'~60 sec left', 5:'~40 sec left', 6:'~20 sec left', 7:'Almost done' };
 
 function DraftSkeleton() {
   const pulse = useRef(new Animated.Value(0.4)).current;
@@ -48,16 +49,18 @@ function DraftSkeleton() {
 }
 
 function OnboardingContent() {
-  const { step, prevStep, minStep, draftLoaded } = useOnboarding();
+  const { step, prevStep, minStep, draftLoaded, saveStatus } = useOnboarding();
   const { logout } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // Slide animation
-  const slideAnim  = useRef(new Animated.Value(0)).current;
+  // Slide animation + per-dot completion bounce
+  const slideAnim   = useRef(new Animated.Value(0)).current;
   const prevStepRef = useRef(step);
+  const dotScales   = useRef(Array.from({ length: TOTAL_STEPS }, () => new Animated.Value(1))).current;
 
   useEffect(() => {
     const dir = step > prevStepRef.current ? 1 : -1;
+    const completedIdx = dir === 1 ? prevStepRef.current - 1 : null; // dot that just got marked done
     prevStepRef.current = step;
 
     slideAnim.setValue(dir * W * 0.4);
@@ -67,15 +70,39 @@ function OnboardingContent() {
       tension: 68,
       friction: 11,
     }).start();
+
+    if (completedIdx != null && completedIdx >= 0 && completedIdx < TOTAL_STEPS) {
+      const dv = dotScales[completedIdx];
+      dv.setValue(1);
+      Animated.sequence([
+        Animated.spring(dv, { toValue: 1.5, useNativeDriver: true, speed: 30, bounciness: 12 }),
+        Animated.spring(dv, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }),
+      ]).start();
+    }
   }, [step]);
 
   const progress = STEP_PROGRESS[step] || 0;
 
-  // Progress bar anim
+  // Progress bar anim — spring for a snappier, more "alive" fill
   const progressAnim = useRef(new Animated.Value(progress)).current;
+  const [displayPct, setDisplayPct] = useState(progress);
   useEffect(() => {
-    Animated.timing(progressAnim, { toValue: progress, duration: 400, useNativeDriver: false }).start();
+    const id = progressAnim.addListener(({ value }) => setDisplayPct(Math.round(value)));
+    return () => progressAnim.removeListener(id);
+  }, []);
+  useEffect(() => {
+    Animated.spring(progressAnim, { toValue: progress, useNativeDriver: false, speed: 14, bounciness: 4 }).start();
   }, [progress]);
+
+  // "Saving… / Saved" trust indicator
+  const saveIndicatorAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(saveIndicatorAnim, {
+      toValue: saveStatus === 'idle' ? 0 : 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [saveStatus]);
 
   const canGoBack = step > minStep;
 
@@ -115,8 +142,9 @@ function OnboardingContent() {
         </View>
 
         <View style={s.topCenter}>
-          <Text style={s.stepCounter}>Step {step} of {TOTAL_STEPS}</Text>
+          <Text style={s.stepCounter}>Step {step} of {TOTAL_STEPS} · {displayPct}%</Text>
           <Text style={s.stepName}>{STEP_LABELS[step - 1]}</Text>
+          <Text style={s.timeLeft}>{STEP_TIME_LEFT[step] || ''}</Text>
         </View>
 
         <View style={s.topRight}>
@@ -129,23 +157,37 @@ function OnboardingContent() {
       {/* Progress bar */}
       <View style={s.progressTrack}>
         <Animated.View style={[s.progressFill, {
-          width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+          width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'], extrapolate: 'clamp' }),
         }]} />
       </View>
+
+      {/* Autosave trust indicator */}
+      <Animated.View pointerEvents="none" style={[s.saveIndicator, {
+        opacity: saveIndicatorAnim,
+        transform: [{ translateY: saveIndicatorAnim.interpolate({ inputRange: [0, 1], outputRange: [-4, 0] }) }],
+      }]}>
+        {saveStatus === 'saving' && <ActivityIndicator size="small" color="#818cf8" />}
+        {saveStatus === 'saved'  && <Ionicons name="checkmark-circle" size={12} color="#34d399" />}
+        {saveStatus === 'error'  && <Ionicons name="cloud-offline-outline" size={12} color="#f87171" />}
+        <Text style={s.saveIndicatorText}>
+          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? "Couldn't sync — will retry" : ''}
+        </Text>
+      </Animated.View>
 
       {/* Step dots (compact) */}
       <View style={s.dotsRow}>
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <View
+          <Animated.View
             key={i}
             style={[
               s.dot,
               i + 1 < step  && s.dotDone,
               i + 1 === step && s.dotActive,
+              { transform: [{ scale: dotScales[i] }] },
             ]}
           >
             {i + 1 < step && <Ionicons name="checkmark" size={9} color="#fff" />}
-          </View>
+          </Animated.View>
         ))}
       </View>
 
@@ -182,10 +224,15 @@ const s = StyleSheet.create({
   logo:          { width: 32, height: 32 },
   stepCounter:   { fontSize: 11, color: '#475569', fontWeight: '600', letterSpacing: 0.5 },
   stepName:      { fontSize: 14, fontWeight: '800', color: '#c4b5fd', marginTop: 1 },
+  timeLeft:      { fontSize: 10, color: '#4b5563', fontWeight: '600', marginTop: 2 },
 
   // Progress
   progressTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 0, overflow: 'hidden' },
   progressFill:  { height: '100%', backgroundColor: '#6366f1' },
+
+  // Autosave indicator
+  saveIndicator:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 6 },
+  saveIndicatorText: { fontSize: 10.5, fontWeight: '700', color: '#64748b' },
 
   // Dots
   dotsRow:       { flexDirection: 'row', justifyContent: 'center', gap: 5, paddingVertical: 8 },
