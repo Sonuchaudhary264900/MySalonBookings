@@ -7,8 +7,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import auth from '@react-native-firebase/auth';
-import { isAvailableAsync, showPhoneNumberHintAsync } from 'expo-phone-number-hint';
 import { useAuth } from '../../context/AuthContext';
+
+// Phone Number Hint is an optional native module (SIM/Google number picker).
+// Guard the require so a build that hasn't linked it — e.g. a stale dev
+// client — degrades to manual entry instead of white-screening the app.
+let isAvailableAsync = async () => false;
+let showPhoneNumberHintAsync = async () => null;
+try {
+  const hintMod = require('expo-phone-number-hint');
+  if (hintMod?.isAvailableAsync) isAvailableAsync = hintMod.isAvailableAsync;
+  if (hintMod?.showPhoneNumberHintAsync) showPhoneNumberHintAsync = hintMod.showPhoneNumberHintAsync;
+} catch { /* native module unavailable — phone hint simply won't show */ }
 
 const { width: W, height: H } = Dimensions.get('window');
 
