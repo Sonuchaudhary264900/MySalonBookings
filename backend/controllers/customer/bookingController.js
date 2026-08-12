@@ -430,6 +430,7 @@ const createBooking = async (req, res) => {
       try {
         const { sendExpoPush } = require('../../utils/pushNotification');
         const { sendBookingConfirmation } = require('../../utils/whatsapp');
+        const { sendBookingConfirmationSms } = require('../../utils/sms');
         const Owner = require('../../models/Owner');
         const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
 
@@ -444,14 +445,18 @@ const createBooking = async (req, res) => {
         }
 
         if (customer.phone) {
-          sendBookingConfirmation({
+          // WhatsApp first, DLT SMS fallback if WhatsApp isn't delivered
+          const msgArgs = {
             phone: customer.phone,
             customerName: customer.name || 'there',
             salonName: salon.name,
             serviceName: combinedName,
             date: appointmentDate,
             time: appointmentTime,
-          }).catch(() => {});
+          };
+          sendBookingConfirmation(msgArgs)
+            .then((r) => { if (!r?.ok) sendBookingConfirmationSms(msgArgs).catch(() => {}); })
+            .catch(() => { sendBookingConfirmationSms(msgArgs).catch(() => {}); });
         }
 
         if (owner?.pushToken) {
@@ -603,6 +608,7 @@ const finalizeBookingAfterPayment = async (booking, salon, customer) => {
     try {
       const { sendExpoPush } = require('../../utils/pushNotification');
       const { sendBookingConfirmation } = require('../../utils/whatsapp');
+      const { sendBookingConfirmationSms } = require('../../utils/sms');
       const Owner = require('../../models/Owner');
       const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
 
@@ -617,14 +623,18 @@ const finalizeBookingAfterPayment = async (booking, salon, customer) => {
       }
 
       if (customer.phone) {
-        sendBookingConfirmation({
+        // WhatsApp first, DLT SMS fallback if WhatsApp isn't delivered
+        const msgArgs = {
           phone: customer.phone,
           customerName: customer.name || 'there',
           salonName: salon.name,
           serviceName: combinedName,
           date: appointmentDateStr,
           time: booking.appointmentTime,
-        }).catch(() => {});
+        };
+        sendBookingConfirmation(msgArgs)
+          .then((r) => { if (!r?.ok) sendBookingConfirmationSms(msgArgs).catch(() => {}); })
+          .catch(() => { sendBookingConfirmationSms(msgArgs).catch(() => {}); });
       }
 
       if (owner?.pushToken) {

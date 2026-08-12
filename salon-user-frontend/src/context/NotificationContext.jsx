@@ -51,7 +51,9 @@ export function NotificationProvider({ children }) {
   }, []);
 
   // ── Persistent notifications ───────────────────────────────
-  const addNotification = useCallback(({ type = "info", title, message }) => {
+  // `alert` (default true) also raises a browser notification + sound so the
+  // customer is alerted even when the tab is in the background.
+  const addNotification = useCallback(({ type = "info", title, message, alert = true }) => {
     const n = {
       id: Date.now() + Math.random(),
       type,
@@ -61,6 +63,10 @@ export function NotificationProvider({ children }) {
       createdAt: new Date().toISOString(),
     };
     setNotifications((prev) => [n, ...prev].slice(0, MAX_STORED));
+    if (alert) {
+      showBrowserNotif(title, message, `notif-${n.id}`);
+      playNotifSound();
+    }
   }, []);
 
   const markRead      = useCallback((id) =>

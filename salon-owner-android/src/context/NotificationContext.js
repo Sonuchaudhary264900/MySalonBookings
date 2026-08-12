@@ -77,7 +77,7 @@ async function setupNotificationChannels() {
     vibrationPattern: [0, 200, 100, 200],
     lightColor: '#6366f1',
     enableVibrate: true,
-    sound: 'chat_message',
+    sound: 'chat_message.wav',
   });
 
   // Standard channel for other owner notifications

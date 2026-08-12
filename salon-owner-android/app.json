@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.mysalonbookings.owner",
-      "versionCode": 7,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "permissions": [],
       "adaptiveIcon": {
@@ -43,7 +43,8 @@
           "icon": "./assets/Icon-1024.png",
           "color": "#2563eb",
           "sounds": [
-            "./assets/sounds/new_booking.wav"
+            "./assets/sounds/new_booking.wav",
+            "./assets/sounds/chat_message.wav"
           ]
         }
       ],
