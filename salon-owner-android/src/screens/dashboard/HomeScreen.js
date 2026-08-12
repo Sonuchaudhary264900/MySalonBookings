@@ -8,7 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { WebView } from 'react-native-webview';
+import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { useSalon } from '../../context/SalonContext';
@@ -131,6 +134,9 @@ export default function HomeScreen() {
   const [showQR,          setShowQR]          = useState(false);
   const [capturing,       setCapturing]       = useState(false);
   const [capturingA4,     setCapturingA4]     = useState(false);
+  const [makingPdf,       setMakingPdf]       = useState(false);
+  const qrRef = useRef(null);
+  const [qrPng,           setQrPng]           = useState(null);
   const [services,        setServices]        = useState([]);
   const [todayBookings,   setTodayBookings]   = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -155,14 +161,16 @@ export default function HomeScreen() {
   /* ── QR card HTML generators ── */
   const getCardHtml = () => {
     const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
-    const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
+    const qrSrc = JSON.stringify(qrPng ? `data:image/png;base64,${qrPng}` : '');
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1680"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
 var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=560,S=3;ctx.scale(S,S);
 ctx.fillStyle='#f3f4f6';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffffff';ctx.fillRect(20,20,360,520);
 ctx.fillStyle='#4f46e5';ctx.fillRect(20,20,360,74);ctx.fillStyle='#ffffff';ctx.font='bold 17px Arial';ctx.textAlign='center';
 ctx.fillText('\u2702  Business Booking',200,64);
-var img=new Image();img.crossOrigin='anonymous';
+var src=${qrSrc};
+if(!src){ window.ReactNativeWebView.postMessage('ERROR'); return; }
+var img=new Image();
 img.onload=function(){
   ctx.drawImage(img,110,110,180,180);ctx.fillStyle='#111827';ctx.font='bold 20px Arial';ctx.fillText(salonName,200,322);
   ctx.fillStyle='#6b7280';ctx.font='13px Arial';ctx.fillText('Scan to book your appointment',200,348);
@@ -172,8 +180,8 @@ img.onload=function(){
   chars.forEach(function(ch){var t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else{line=t;}});
   if(line)lines.push(line);lines.forEach(function(l,i){ctx.fillText(l,200,386+i*13);});
   ctx.fillStyle='#6b7280';ctx.font='11px Arial';ctx.fillText('Powered by GlowLoox',200,500);
-  window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
-};img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=${qrApiUrl};
+  try{ window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]); }catch(e){ window.ReactNativeWebView.postMessage('ERROR'); }
+};img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=src;
 })();<\/script></body></html>`;
   };
 
@@ -193,7 +201,7 @@ img.onload=function(){
 
   const getA4Html = () => {
     const safeData = JSON.stringify({ salonName: salon?.name || 'My Business', bookingUrl: qrValue });
-    const qrApiUrl = JSON.stringify(`https://api.qrserver.com/v1/create-qr-code/?size=900x900&data=${encodeURIComponent(qrValue)}`);
+    const qrSrc = JSON.stringify(qrPng ? `data:image/png;base64,${qrPng}` : '');
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0"><canvas id="c" width="1200" height="1698"></canvas><script>(function(){
 var d=${safeData},salonName=d.salonName,bookingUrl=d.bookingUrl;
 var c=document.getElementById('c'),ctx=c.getContext('2d'),W=400,H=566,S=3;ctx.scale(S,S);
@@ -201,7 +209,9 @@ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#4f46e5';ctx.fillRe
 ctx.fillStyle='#ffffff';ctx.font='bold 28px Arial';ctx.textAlign='center';ctx.fillText('\u2702  Business Booking',W/2,52);
 ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='13px Arial';ctx.fillText('Scan the QR code to book your appointment',W/2,76);
 ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px Arial';ctx.fillText(salonName,W/2,96);
-var img=new Image();img.crossOrigin='anonymous';
+var src=${qrSrc};
+if(!src){ window.ReactNativeWebView.postMessage('ERROR'); return; }
+var img=new Image();
 img.onload=function(){
   var QS=230,QX=(W-QS)/2,QY=130;
   ctx.fillStyle='#f3f4f6';ctx.fillRect(QX-14,QY-14,QS+28,QS+28);ctx.fillStyle='#ffffff';ctx.fillRect(QX-10,QY-10,QS+20,QS+20);
@@ -215,8 +225,8 @@ img.onload=function(){
   ctx.fillStyle='#f9fafb';ctx.fillRect(0,H-40,W,40);ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
   ctx.fillStyle='#9ca3af';ctx.font='11px Arial';ctx.fillText('Powered by GlowLoox',W/2,H-16);
-  window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]);
-};img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=${qrApiUrl};
+  try{ window.ReactNativeWebView.postMessage(c.toDataURL('image/png').split(',')[1]); }catch(e){ window.ReactNativeWebView.postMessage('ERROR'); }
+};img.onerror=function(){window.ReactNativeWebView.postMessage('ERROR');};img.src=src;
 })();<\/script></body></html>`;
   };
 
@@ -233,6 +243,52 @@ img.onload=function(){
       showSuccess('Saved!', 'QR printout saved to your gallery');
     } catch { showError('Error', 'Could not save image'); }
   }, [salon]);
+
+  // Render the local QR to a PNG (offline, no CORS taint), then run `next`.
+  const captureQrThen = (next) => {
+    if (!qrRef.current || typeof qrRef.current.toDataURL !== 'function') {
+      showError('Please wait', 'QR is still loading — try again');
+      return;
+    }
+    qrRef.current.toDataURL((data) => {
+      setQrPng(data);
+      next(data);
+    });
+  };
+
+  // Save the QR as a real PDF file the owner can keep/print.
+  const savePdf = async (base64) => {
+    try {
+      setMakingPdf(true);
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;text-align:center;padding:48px 32px;color:#111827}
+.tag{display:inline-block;background:#4f46e5;color:#fff;font-weight:700;font-size:16px;padding:10px 20px;border-radius:999px;margin-bottom:28px}
+img{width:300px;height:300px;border:1px solid #e5e7eb;border-radius:16px;padding:12px}
+h1{font-size:26px;margin:24px 0 6px}
+p{color:#6b7280;font-size:14px}
+.url{color:#9ca3af;font-size:11px;word-break:break-all;margin-top:14px}
+.foot{margin-top:36px;color:#9ca3af;font-size:12px}</style></head>
+<body>
+<div class="tag">Business Booking</div><br/>
+<img src="data:image/png;base64,${base64}"/>
+<h1>${(salon?.name || 'My Business').replace(/</g, '&lt;')}</h1>
+<p>Scan the QR code to book your appointment</p>
+<div class="url">${String(qrValue).replace(/</g, '&lt;')}</div>
+<div class="foot">Powered by GlowLoox</div>
+</body></html>`;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Save QR PDF' });
+      } else {
+        await Print.printAsync({ uri });
+      }
+    } catch {
+      showError('Error', 'Could not create PDF');
+    } finally {
+      setMakingPdf(false);
+    }
+  };
 
   /* ── Fetch queue ── */
   const fetchQueue = async () => {
@@ -986,24 +1042,32 @@ img.onload=function(){
             </TouchableOpacity>
           </View>
           <View style={qrStyles.qrBox}>
-            <Image source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}` }} style={{ width: 180, height: 180 }} />
+            <QRCode value={qrValue || ' '} size={180} quietZone={6} />
           </View>
           <Text style={qrStyles.salonName}>{salon?.name || 'My Business'}</Text>
           <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
           <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#6366f1', flex: 1 }]} onPress={() => { setShowQR(false); setCapturing(true); }}>
-              <Ionicons name="image-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Save Image</Text>
+            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#6366f1', flex: 1 }]} onPress={() => { setShowQR(false); captureQrThen(() => setCapturing(true)); }}>
+              <Ionicons name="image-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Image</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]} onPress={() => { setShowQR(false); setCapturingA4(true); }}>
-              <Ionicons name="document-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Save A4</Text>
+            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]} onPress={() => { setShowQR(false); captureQrThen(() => setCapturingA4(true)); }}>
+              <Ionicons name="document-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>A4</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#059669', flex: 1 }]} onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}>
-              <Ionicons name="share-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Share</Text>
+            <TouchableOpacity disabled={makingPdf} style={[qrStyles.actionBtn, { backgroundColor: '#dc2626', flex: 1, opacity: makingPdf ? 0.6 : 1 }]} onPress={() => { setShowQR(false); captureQrThen((data) => savePdf(data)); }}>
+              {makingPdf ? <ActivityIndicator size="small" color="#fff" /> : <><Ionicons name="document-text-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>PDF</Text></>}
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#059669', width: '100%', marginTop: 8 }]} onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}>
+            <Ionicons name="share-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Share Booking Link</Text>
+          </TouchableOpacity>
         </Pressable>
       </Pressable>
     </Modal>
+
+    {/* Hidden local QR — rendered off-screen so its ref can export a PNG offline */}
+    <View style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000, left: -1000 }} pointerEvents="none">
+      <QRCode value={qrValue || ' '} size={300} quietZone={10} getRef={(c) => { qrRef.current = c; }} />
+    </View>
 
     {capturing   && <WebView style={styles.hiddenWebview} source={{ html: getCardHtml() }} onMessage={onCardCaptured}   javaScriptEnabled />}
     {capturingA4 && <WebView style={styles.hiddenWebview} source={{ html: getA4Html()   }} onMessage={onA4Captured}    javaScriptEnabled />}
