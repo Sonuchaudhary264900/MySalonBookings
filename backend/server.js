@@ -469,6 +469,15 @@ const startServer = async () => {
       logger.warn("Background maintenance error", { error: e.message })
     );
 
+    // DLT SMS (Fast2SMS) config visibility — never logs the API key value
+    const smsTpls = ["OTP", "BOOKING", "REMINDER", "DELAY", "STATUS"]
+      .filter((k) => process.env[`FAST2SMS_${k}_TEMPLATE_ID`]);
+    logger.info("SMS (Fast2SMS DLT) config", {
+      apiKey: process.env.FAST2SMS_API_KEY ? "set" : "MISSING",
+      senderId: process.env.FAST2SMS_SENDER_ID || "MISSING",
+      templatesConfigured: smsTpls.length ? smsTpls.join(",") : "none",
+    });
+
     // Warm up Python AI service (sends a harmless health request after 5s so MediaPipe is ready)
     if (process.env.PYTHON_AI_URL) {
       setTimeout(() => {

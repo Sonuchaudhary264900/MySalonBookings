@@ -2293,6 +2293,47 @@ router.get("/admin/diagnose-phone/:phone", authenticateAdmin, asyncHandler(async
 
   res.json({ success: true, data: { input: raw, tenDigit, owner, business, ownerViaBusiness } });
 }));
+
+// GET /admin/sms/status — show which DLT SMS env vars are configured (no secrets)
+router.get("/admin/sms/status", authenticateAdmin, asyncHandler(async (req, res) => {
+  const present = (v) => Boolean(v && String(v).trim());
+  res.json({
+    success: true,
+    data: {
+      apiKey:    present(process.env.FAST2SMS_API_KEY),
+      senderId:  process.env.FAST2SMS_SENDER_ID || null,
+      templates: {
+        otp:      present(process.env.FAST2SMS_OTP_TEMPLATE_ID),
+        booking:  present(process.env.FAST2SMS_BOOKING_TEMPLATE_ID),
+        reminder: present(process.env.FAST2SMS_REMINDER_TEMPLATE_ID),
+        delay:    present(process.env.FAST2SMS_DELAY_TEMPLATE_ID),
+        status:   present(process.env.FAST2SMS_STATUS_TEMPLATE_ID),
+      },
+    },
+  });
+}));
+
+// POST /admin/sms/test — send a real DLT SMS with sample values to verify delivery
+// body: { phone: "9876543210", type: "otp|booking|reminder|delay|status" }
+router.post("/admin/sms/test", authenticateAdmin, asyncHandler(async (req, res) => {
+  const { phone, type = "otp" } = req.body || {};
+  if (!phone) return res.status(400).json({ success: false, message: "phone is required" });
+
+  const sms = require("../utils/sms");
+  const samples = {
+    otp:      () => sms.sendOtpSms({ phone, otp: "123456" }),
+    booking:  () => sms.sendBookingConfirmationSms({ phone, customerName: "Test User", salonName: "GlowLoox Salon", serviceName: "Haircut", date: "2026-08-15", time: "5:30 PM" }),
+    reminder: () => sms.sendReminderSms({ phone, customerName: "Test User", serviceName: "Haircut", salonName: "GlowLoox Salon", time: "5:30 PM" }),
+    delay:    () => sms.sendDelayAlertSms({ phone, customerName: "Test User", salonName: "GlowLoox Salon", tentativeTime: "6:00 PM", delayMinutes: 20 }),
+    status:   () => sms.sendStatusSms({ phone, customerName: "Test User", salonName: "GlowLoox Salon", date: "2026-08-15", status: "confirmed" }),
+  };
+  const run = samples[type];
+  if (!run) return res.status(400).json({ success: false, message: `Invalid type. Use one of: ${Object.keys(samples).join(", ")}` });
+
+  const result = await run();
+  res.json({ success: !!result?.ok, data: result });
+}));
+
 router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementController.getAllSalons));
 router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
 router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));
