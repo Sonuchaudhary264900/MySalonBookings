@@ -19,43 +19,57 @@ transactional traffic, e.g. `GLOWLX`. Put the approved header in env as
 
 ## Step 2 — Register Content Templates on Jio DLT
 
-Create each template below under **Template → Content Template** (category:
-*Transactional* / *Service Implicit* as appropriate). DLT variables are written as
-`{#var#}` and are filled **in order** by the backend. Keep the wording and the
-number/order of variables exactly as below (you may adjust brand wording, but not
-the variable order).
+Create each template below under **Template → Content Template**. The Jio DLT
+portal uses **typed variable tags** — use `{#number#}` for pure-digit values and
+`{#alphanumeric#}` for everything else (names/dates/times/status). They are filled
+**in order** by the backend, so keep the wording and variable order exactly.
 
 > Replace `GlowLoox` with your approved brand/entity name if different.
 
-### 1. OTP  → `FAST2SMS_OTP_TEMPLATE_ID`
+### 1. OTP  → `FAST2SMS_OTP_TEMPLATE_ID`  (category: OTP)
 ```
-{#var#} is your GlowLoox verification code. Valid for 10 minutes. Do not share it with anyone.
+{#number#} is your GlowLoox verification code. Valid for 10 minutes. Do not share it with anyone.
 ```
 Variables (in order): `otp`
 
 ### 2. Booking Confirmation  → `FAST2SMS_BOOKING_TEMPLATE_ID`
 ```
-Hi {#var#}, your booking at {#var#} for {#var#} on {#var#} at {#var#} is confirmed. - GlowLoox
+Hi {#alphanumeric#}, your booking at {#alphanumeric#} for {#alphanumeric#} on {#alphanumeric#} at {#alphanumeric#} is confirmed. - GlowLoox
 ```
 Variables: `customerName, salonName, serviceName, date, time`
 
 ### 3. Appointment Reminder  → `FAST2SMS_REMINDER_TEMPLATE_ID`
 ```
-Hi {#var#}, reminder: your {#var#} at {#var#} is at {#var#}. See you soon! - GlowLoox
+Hi {#alphanumeric#}, reminder: your {#alphanumeric#} at {#alphanumeric#} is at {#alphanumeric#}. See you soon! - GlowLoox
 ```
 Variables: `customerName, serviceName, salonName, time`
 
 ### 4. Delay Alert  → `FAST2SMS_DELAY_TEMPLATE_ID`
 ```
-Hi {#var#}, your appointment at {#var#} is now expected around {#var#} (running {#var#} min late). Sorry for the wait! - GlowLoox
+Hi {#alphanumeric#}, your appointment at {#alphanumeric#} is now expected around {#alphanumeric#} (running {#number#} min late). Sorry for the wait! - GlowLoox
 ```
 Variables: `customerName, salonName, tentativeTime, delayMinutes`
 
 ### 5. Status Update  → `FAST2SMS_STATUS_TEMPLATE_ID`
 ```
-Hi {#var#}, your booking at {#var#} on {#var#} is now {#var#}. - GlowLoox
+Hi {#alphanumeric#}, your booking at {#alphanumeric#} on {#alphanumeric#} is now {#alphanumeric#}. - GlowLoox
 ```
 Variables: `customerName, salonName, date, status`
+
+### OTP auto-detect / auto-copy
+The OTP template above already works with keyboard auto-fill (Gboard/iOS show a
+"Copy 1234" / autofill chip) because it contains a numeric code next to the words
+"verification code". No hash needed for that.
+
+For **fully-automatic** fill (Android SMS Retriever API — fills with no tap and no
+SMS-read permission) the message must start with `<#>` and end with your app's
+unique 11-char hash, e.g.:
+```
+<#> {#number#} is your GlowLoox verification code. Do not share it. a1B2c3D4e5F
+```
+The hash differs per signed app (customer vs owner), so this needs app-side code
+and a per-app template. Register the plain version above first; add the hash
+variant later when the SMS-OTP login screen is wired.
 
 ## Step 3 — Link templates in Fast2SMS & copy the Message IDs
 
