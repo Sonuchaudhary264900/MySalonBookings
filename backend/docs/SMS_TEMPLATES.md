@@ -21,40 +21,44 @@ transactional traffic, e.g. `GLOWLX`. Put the approved header in env as
 
 Create each template below under **Template → Content Template**. The Jio DLT
 portal uses **typed variable tags** — use `{#number#}` for pure-digit values and
-`{#alphanumeric#}` for everything else (names/dates/times/status). They are filled
-**in order** by the backend, so keep the wording and variable order exactly.
+`{#alphanumeric#}` for everything else (names/dates/times/status).
 
+> **TRAI rule:** *Service Inferred* templates allow a **maximum of 3 variables**.
+> All templates below are kept at ≤3 variables (that's why the customer name and
+> the delay-minutes were dropped and date+time were merged). They are filled
+> **in order** by the backend — keep the wording and variable order exactly.
+>
 > Replace `GlowLoox` with your approved brand/entity name if different.
 
 ### 1. OTP  → `FAST2SMS_OTP_TEMPLATE_ID`  (category: OTP)
 ```
 {#number#} is your GlowLoox verification code. Valid for 10 minutes. Do not share it with anyone.
 ```
-Variables (in order): `otp`
+Variables (in order): `otp`  *(1 var)*
 
 ### 2. Booking Confirmation  → `FAST2SMS_BOOKING_TEMPLATE_ID`
 ```
-Hi {#alphanumeric#}, your booking at {#alphanumeric#} for {#alphanumeric#} on {#alphanumeric#} at {#alphanumeric#} is confirmed. - GlowLoox
+Your booking at {#alphanumeric#} for {#alphanumeric#} is confirmed for {#alphanumeric#}. - GlowLoox
 ```
-Variables: `customerName, salonName, serviceName, date, time`
+Variables: `salonName, serviceName, dateTime`  *(3 vars; dateTime = "15 Aug 5:30 PM")*
 
 ### 3. Appointment Reminder  → `FAST2SMS_REMINDER_TEMPLATE_ID`
 ```
-Hi {#alphanumeric#}, reminder: your {#alphanumeric#} at {#alphanumeric#} is at {#alphanumeric#}. See you soon! - GlowLoox
+Reminder: your {#alphanumeric#} at {#alphanumeric#} is at {#alphanumeric#}. See you soon! - GlowLoox
 ```
-Variables: `customerName, serviceName, salonName, time`
+Variables: `serviceName, salonName, time`  *(3 vars)*
 
 ### 4. Delay Alert  → `FAST2SMS_DELAY_TEMPLATE_ID`
 ```
-Hi {#alphanumeric#}, your appointment at {#alphanumeric#} is now expected around {#alphanumeric#} (running {#number#} min late). Sorry for the wait! - GlowLoox
+Your appointment at {#alphanumeric#} is delayed, now expected around {#alphanumeric#}. Sorry for the wait! - GlowLoox
 ```
-Variables: `customerName, salonName, tentativeTime, delayMinutes`
+Variables: `salonName, tentativeTime`  *(2 vars)*
 
 ### 5. Status Update  → `FAST2SMS_STATUS_TEMPLATE_ID`
 ```
-Hi {#alphanumeric#}, your booking at {#alphanumeric#} on {#alphanumeric#} is now {#alphanumeric#}. - GlowLoox
+Your booking at {#alphanumeric#} on {#alphanumeric#} is now {#alphanumeric#}. - GlowLoox
 ```
-Variables: `customerName, salonName, date, status`
+Variables: `salonName, date, status`  *(3 vars)*
 
 ### OTP auto-detect / auto-copy
 The OTP template above already works with keyboard auto-fill (Gboard/iOS show a

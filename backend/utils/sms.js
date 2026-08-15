@@ -109,36 +109,41 @@ async function sendDlt(phone, templateId, variables = []) {
 // Each maps 1:1 to a registered DLT Content Template. Keep the variable order
 // identical to how you register the {#var#} placeholders (see SMS_TEMPLATES.md).
 
-/** OTP: "{#var#} is your GlowLoox verification OTP. ..." → [otp] */
+// NOTE: TRAI "Service Inferred" templates allow at most 3 variables, so these
+// map to ≤3 vars (see docs/SMS_TEMPLATES.md). Extra args are accepted but folded
+// into the allowed variables (e.g. date + time are combined into one value).
+
+/** OTP → [otp]  (1 var) */
 function sendOtpSms({ phone, otp }) {
   return sendDlt(phone, process.env.FAST2SMS_OTP_TEMPLATE_ID, [otp]);
 }
 
-/** Booking: "Hi {#var#}, your booking at {#var#} for {#var#} on {#var#} at {#var#} is confirmed..." */
-function sendBookingConfirmationSms({ phone, customerName, salonName, serviceName, date, time }) {
+/** Booking: "Your booking at {#a#} for {#a#} is confirmed for {#a#}." → [salon, service, dateTime]  (3 vars) */
+function sendBookingConfirmationSms({ phone, salonName, serviceName, date, time }) {
+  const dateTime = [date, time].filter(Boolean).join(' ');
   return sendDlt(phone, process.env.FAST2SMS_BOOKING_TEMPLATE_ID, [
-    customerName, salonName, serviceName, date, time,
+    salonName, serviceName, dateTime,
   ]);
 }
 
-/** Reminder: "Hi {#var#}, reminder: your {#var#} at {#var#} is at {#var#}..." */
-function sendReminderSms({ phone, customerName, serviceName, salonName, time }) {
+/** Reminder: "Reminder: your {#a#} at {#a#} is at {#a#}." → [service, salon, time]  (3 vars) */
+function sendReminderSms({ phone, serviceName, salonName, time }) {
   return sendDlt(phone, process.env.FAST2SMS_REMINDER_TEMPLATE_ID, [
-    customerName, serviceName, salonName, time,
+    serviceName, salonName, time,
   ]);
 }
 
-/** Delay: "Hi {#var#}, your appointment at {#var#} is now expected around {#var#} (running {#var#} min late)..." */
-function sendDelayAlertSms({ phone, customerName, salonName, tentativeTime, delayMinutes }) {
+/** Delay: "Your appointment at {#a#} is delayed, now expected around {#a#}." → [salon, tentativeTime]  (2 vars) */
+function sendDelayAlertSms({ phone, salonName, tentativeTime }) {
   return sendDlt(phone, process.env.FAST2SMS_DELAY_TEMPLATE_ID, [
-    customerName, salonName, tentativeTime, String(delayMinutes),
+    salonName, tentativeTime,
   ]);
 }
 
-/** Status: "Hi {#var#}, your booking at {#var#} on {#var#} is now {#var#}..." */
-function sendStatusSms({ phone, customerName, salonName, date, status }) {
+/** Status: "Your booking at {#a#} on {#a#} is now {#a#}." → [salon, date, status]  (3 vars) */
+function sendStatusSms({ phone, salonName, date, status }) {
   return sendDlt(phone, process.env.FAST2SMS_STATUS_TEMPLATE_ID, [
-    customerName, salonName, date, status,
+    salonName, date, status,
   ]);
 }
 
