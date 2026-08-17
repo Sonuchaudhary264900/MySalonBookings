@@ -445,7 +445,7 @@ const createBooking = async (req, res) => {
         }
 
         if (customer.phone) {
-          // WhatsApp first, DLT SMS fallback if WhatsApp isn't delivered
+          // DLT SMS first, WhatsApp fallback if SMS isn't delivered
           const msgArgs = {
             phone: customer.phone,
             customerName: customer.name || 'there',
@@ -454,9 +454,9 @@ const createBooking = async (req, res) => {
             date: appointmentDate,
             time: appointmentTime,
           };
-          sendBookingConfirmation(msgArgs)
-            .then((r) => { if (!r?.ok) sendBookingConfirmationSms(msgArgs).catch(() => {}); })
-            .catch(() => { sendBookingConfirmationSms(msgArgs).catch(() => {}); });
+          sendBookingConfirmationSms(msgArgs)
+            .then((r) => { if (!r?.ok) sendBookingConfirmation(msgArgs).catch(() => {}); })
+            .catch(() => { sendBookingConfirmation(msgArgs).catch(() => {}); });
         }
 
         if (owner?.pushToken) {

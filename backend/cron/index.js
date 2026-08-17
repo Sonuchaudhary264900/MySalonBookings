@@ -175,9 +175,9 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
             salonName: booking.salonName,
             time: effectiveTime,
           };
-          sendReminder1h(rArgs)
-            .then((r) => { if (!r?.ok) sendReminderSms(rArgs).catch(() => {}); })
-            .catch(() => { sendReminderSms(rArgs).catch(() => {}); });
+          sendReminderSms(rArgs)
+            .then((r) => { if (!r?.ok) sendReminder1h(rArgs).catch(() => {}); })
+            .catch(() => { sendReminder1h(rArgs).catch(() => {}); });
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.oneHour': true } });
@@ -744,9 +744,9 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
             salonName: booking.salonName,
             time: effectiveTime,
           };
-          sendReminder10min(rArgs)
-            .then((r) => { if (!r?.ok) sendReminderSms(rArgs).catch(() => {}); })
-            .catch(() => { sendReminderSms(rArgs).catch(() => {}); });
+          sendReminderSms(rArgs)
+            .then((r) => { if (!r?.ok) sendReminder10min(rArgs).catch(() => {}); })
+            .catch(() => { sendReminder10min(rArgs).catch(() => {}); });
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.tenMin': true } });

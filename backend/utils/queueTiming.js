@@ -142,9 +142,9 @@ async function sendDelayNotification(booking, delayMinutes) {
       tentativeTime: tentativeLabel,
       delayMinutes,
     };
-    sendDelayAlert(dArgs)
-      .then((r) => { if (!r?.ok) sendDelayAlertSms(dArgs).catch(() => {}); })
-      .catch(() => { sendDelayAlertSms(dArgs).catch(() => {}); });
+    sendDelayAlertSms(dArgs)
+      .then((r) => { if (!r?.ok) sendDelayAlert(dArgs).catch(() => {}); })
+      .catch(() => { sendDelayAlert(dArgs).catch(() => {}); });
   }
 }
 
