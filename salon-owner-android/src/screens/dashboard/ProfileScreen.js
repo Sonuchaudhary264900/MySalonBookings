@@ -541,31 +541,15 @@ p{color:#6b7280;font-size:14px}
               <Text style={styles.qrSalonName}>{salon?.name}</Text>
             </View>
             <Text style={styles.qrHint}>Print or display this QR code at your business</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' }}>
-              <TouchableOpacity
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#6366f1', borderRadius: 12 }}
-                onPress={() => { setShowQR(false); captureQrThen(() => setCapturing(true)); }}
-              >
-                <Ionicons name="image-outline" size={15} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>Image</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#4f46e5', borderRadius: 12 }}
-                onPress={() => { setShowQR(false); captureQrThen(() => setCapturingA4(true)); }}
-              >
-                <Ionicons name="document-outline" size={15} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>A4</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={makingPdf}
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 11, backgroundColor: '#dc2626', borderRadius: 12, opacity: makingPdf ? 0.6 : 1 }}
-                onPress={() => { setShowQR(false); captureQrThen((data) => savePdf(data)); }}
-              >
-                {makingPdf
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <><Ionicons name="document-text-outline" size={15} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>PDF</Text></>}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              disabled={makingPdf}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, marginTop: 14, backgroundColor: '#dc2626', borderRadius: 12, width: '100%', opacity: makingPdf ? 0.6 : 1 }}
+              onPress={() => { setShowQR(false); captureQrThen((data) => savePdf(data)); }}
+            >
+              {makingPdf
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <><Ionicons name="document-text-outline" size={16} color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Download PDF</Text></>}
+            </TouchableOpacity>
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 11, marginTop: 8, backgroundColor: '#059669', borderRadius: 12, width: '100%' }}
               onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}
@@ -581,24 +565,6 @@ p{color:#6b7280;font-size:14px}
       <View style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000, left: -1000 }} pointerEvents="none">
         <QRCode value={qrValue || ' '} size={300} quietZone={10} getRef={(c) => { qrRef.current = c; }} />
       </View>
-
-      {capturing && (
-        <WebView
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 }}
-          source={{ html: getCardHtml() }}
-          onMessage={onCardCaptured}
-          javaScriptEnabled
-        />
-      )}
-
-      {capturingA4 && (
-        <WebView
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, top: -1000 }}
-          source={{ html: getA4Html() }}
-          onMessage={onA4Captured}
-          javaScriptEnabled
-        />
-      )}
 
     </ScrollView>
   );

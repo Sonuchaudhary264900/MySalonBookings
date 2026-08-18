@@ -1046,17 +1046,9 @@ p{color:#6b7280;font-size:14px}
           </View>
           <Text style={qrStyles.salonName}>{salon?.name || 'My Business'}</Text>
           <Text style={qrStyles.hint}>Share this QR so customers can book directly</Text>
-          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#6366f1', flex: 1 }]} onPress={() => { setShowQR(false); captureQrThen(() => setCapturing(true)); }}>
-              <Ionicons name="image-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Image</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#4f46e5', flex: 1 }]} onPress={() => { setShowQR(false); captureQrThen(() => setCapturingA4(true)); }}>
-              <Ionicons name="document-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>A4</Text>
-            </TouchableOpacity>
-            <TouchableOpacity disabled={makingPdf} style={[qrStyles.actionBtn, { backgroundColor: '#dc2626', flex: 1, opacity: makingPdf ? 0.6 : 1 }]} onPress={() => { setShowQR(false); captureQrThen((data) => savePdf(data)); }}>
-              {makingPdf ? <ActivityIndicator size="small" color="#fff" /> : <><Ionicons name="document-text-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>PDF</Text></>}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity disabled={makingPdf} style={[qrStyles.actionBtn, { backgroundColor: '#dc2626', width: '100%', paddingVertical: 13, opacity: makingPdf ? 0.6 : 1 }]} onPress={() => { setShowQR(false); captureQrThen((data) => savePdf(data)); }}>
+            {makingPdf ? <ActivityIndicator size="small" color="#fff" /> : <><Ionicons name="document-text-outline" size={16} color="#fff" /><Text style={qrStyles.actionBtnSm}>Download PDF</Text></>}
+          </TouchableOpacity>
           <TouchableOpacity style={[qrStyles.actionBtn, { backgroundColor: '#059669', width: '100%', marginTop: 8 }]} onPress={() => Share.share({ message: `Book at ${salon?.name || 'My Business'}: ${qrValue}` })}>
             <Ionicons name="share-outline" size={15} color="#fff" /><Text style={qrStyles.actionBtnSm}>Share Booking Link</Text>
           </TouchableOpacity>
@@ -1069,8 +1061,6 @@ p{color:#6b7280;font-size:14px}
       <QRCode value={qrValue || ' '} size={300} quietZone={10} getRef={(c) => { qrRef.current = c; }} />
     </View>
 
-    {capturing   && <WebView style={styles.hiddenWebview} source={{ html: getCardHtml() }} onMessage={onCardCaptured}   javaScriptEnabled />}
-    {capturingA4 && <WebView style={styles.hiddenWebview} source={{ html: getA4Html()   }} onMessage={onA4Captured}    javaScriptEnabled />}
 
     </View>
   );

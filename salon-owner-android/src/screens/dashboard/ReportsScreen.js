@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
@@ -643,7 +644,23 @@ export default function ReportsScreen() {
       ...topServices.map((s, i) => [i + 1, s.name || s.serviceName, s.bookings ?? 0, s.revenue ?? 0]),
     ];
     const csv = '\uFEFF' + rows.map(r => r.map(esc).join(',')).join('\n');
-    try { await Share.share({ message: csv, title: 'Analytics Report' }); } catch { /* dismissed */ }
+    // Write a real .csv file and share it so it opens in Sheets/Files (sharing raw
+    // text can't be saved/opened as a spreadsheet).
+    try {
+      const path = `${FileSystem.cacheDirectory}analytics-report.csv`;
+      await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Analytics Report (CSV)',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+    } catch {
+      Alert.alert('Error', 'Could not export CSV');
+    }
   };
 
   // ── Export PDF ────────────────────────────────────────────────────────────
