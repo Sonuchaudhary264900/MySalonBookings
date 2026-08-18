@@ -2302,6 +2302,40 @@ router.post("/admin/sms/test", authenticateAdmin, asyncHandler(async (req, res) 
   res.json({ success: !!result?.ok, data: result });
 }));
 
+// POST /admin/push/test — send a test push to verify FCM delivery is working.
+// body: { phone?: "9876543210", token?: "ExponentPushToken[...]", ownerId?, userType? }
+// Look up the target's saved Expo token (owner by default, or customer) and push.
+// The Expo response reveals FCM problems (e.g. MismatchSenderId, DeviceNotRegistered).
+router.post("/admin/push/test", authenticateAdmin, asyncHandler(async (req, res) => {
+  const { phone, token, ownerId, userType = "owner" } = req.body || {};
+  const { sendExpoPush } = require("../utils/pushNotification");
+  const Model = userType === "customer" ? require("../models/Customer") : require("../models/Owner");
+
+  let pushToken = token;
+  let who = token ? "raw token" : null;
+  if (!pushToken && ownerId) {
+    const doc = await Model.findById(ownerId).select("pushToken name phone").lean();
+    pushToken = doc?.pushToken; who = doc ? (doc.name || doc.phone) : null;
+  }
+  if (!pushToken && phone) {
+    const tenDigit = String(phone).replace(/\D/g, "").slice(-10);
+    const doc = await Model.findOne({ phone: { $regex: tenDigit + "$" } }).select("pushToken name phone").lean();
+    pushToken = doc?.pushToken; who = doc ? (doc.name || doc.phone) : null;
+  }
+  if (!pushToken) {
+    return res.status(404).json({ success: false, message: "No push token found — the device never registered (open the app + allow notifications), or wrong phone/id." });
+  }
+
+  const result = await sendExpoPush(
+    pushToken,
+    "🔔 Test notification",
+    "If you see this on your phone, push delivery is working!",
+    { type: "admin_test" },
+    { channelId: "new_booking" }
+  );
+  res.json({ success: true, target: who, pushToken, expoResponse: result });
+}));
+
 router.get("/admin/salons/all", authenticateAdmin, asyncHandler(adminManagementController.getAllSalons));
 router.get("/admin/salons/filter-options", authenticateAdmin, asyncHandler(adminManagementController.getFilterOptions));
 router.get("/admin/salons/:salonId/detail", authenticateAdmin, asyncHandler(adminManagementController.getSalonDetail));
