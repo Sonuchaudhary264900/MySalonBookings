@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.mysalonbookings.owner",
-      "versionCode": 9,
+      "versionCode": 10,
       "googleServicesFile": "./google-services.json",
       "permissions": [],
       "adaptiveIcon": {
