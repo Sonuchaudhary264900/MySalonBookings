@@ -126,6 +126,7 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
     const { sendReminder1h } = require('../utils/whatsapp');
+    const { sendReminderSms } = require('../utils/sms');
 
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
     const todayIST = nowIST.toISOString().slice(0, 10);
@@ -167,13 +168,16 @@ const send1HourReminders = cron.schedule('*/5 * * * *', async () => {
         // Walk-ins have no linked account — fall back to the booking's phone
         const reminderPhone1h = booking.customerId?.phone || booking.customerPhone;
         if (reminderPhone1h) {
-          sendReminder1h({
+          const rArgs = {
             phone: reminderPhone1h,
             customerName: booking.customerId?.name || booking.customerName || 'there',
             serviceName: booking.serviceName || 'your appointment',
             salonName: booking.salonName,
             time: effectiveTime,
-          }).catch(() => {});
+          };
+          sendReminderSms(rArgs)
+            .then((r) => { if (!r?.ok) sendReminder1h(rArgs).catch(() => {}); })
+            .catch(() => { sendReminder1h(rArgs).catch(() => {}); });
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.oneHour': true } });
@@ -693,6 +697,7 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
   try {
     const { sendExpoPush } = require('../utils/pushNotification');
     const { sendReminder10min } = require('../utils/whatsapp');
+    const { sendReminderSms } = require('../utils/sms');
 
     // Current IST time
     const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
@@ -732,13 +737,16 @@ const send10MinReminders = cron.schedule('*/5 * * * *', async () => {
         // Walk-ins have no linked account — fall back to the booking's phone
         const reminderPhone10 = booking.customerId?.phone || booking.customerPhone;
         if (reminderPhone10) {
-          sendReminder10min({
+          const rArgs = {
             phone: reminderPhone10,
             customerName: booking.customerId?.name || booking.customerName || 'there',
             serviceName: booking.serviceName || 'your appointment',
             salonName: booking.salonName,
             time: effectiveTime,
-          }).catch(() => {});
+          };
+          sendReminderSms(rArgs)
+            .then((r) => { if (!r?.ok) sendReminder10min(rArgs).catch(() => {}); })
+            .catch(() => { sendReminder10min(rArgs).catch(() => {}); });
         }
 
         await Booking.updateOne({ _id: booking._id }, { $set: { 'remindersSent.tenMin': true } });

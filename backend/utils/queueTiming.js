@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const { sendExpoPush } = require('./pushNotification');
 const { sendDelayAlert } = require('./whatsapp');
+const { sendDelayAlertSms } = require('./sms');
 
 const DELAY_THRESHOLD_MIN = 10;
 
@@ -132,7 +133,7 @@ async function sendDelayNotification(booking, delayMinutes) {
   // Walk-ins have no linked account — fall back to the booking's phone
   const delayPhone = customer?.phone || booking.customerPhone;
   if (delayPhone) {
-    sendDelayAlert({
+    const dArgs = {
       phone: delayPhone,
       customerName: customer?.name || booking.customerName || 'there',
       serviceName: booking.serviceName || 'your appointment',
@@ -140,7 +141,10 @@ async function sendDelayNotification(booking, delayMinutes) {
       originalTime: booking.appointmentTime,
       tentativeTime: tentativeLabel,
       delayMinutes,
-    }).catch(() => {});
+    };
+    sendDelayAlertSms(dArgs)
+      .then((r) => { if (!r?.ok) sendDelayAlert(dArgs).catch(() => {}); })
+      .catch(() => { sendDelayAlert(dArgs).catch(() => {}); });
   }
 }
 

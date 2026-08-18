@@ -430,6 +430,7 @@ const createBooking = async (req, res) => {
       try {
         const { sendExpoPush } = require('../../utils/pushNotification');
         const { sendBookingConfirmation } = require('../../utils/whatsapp');
+        const { sendBookingConfirmationSms } = require('../../utils/sms');
         const Owner = require('../../models/Owner');
         const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
 
@@ -444,7 +445,7 @@ const createBooking = async (req, res) => {
         }
 
         if (customer.phone) {
-          // WhatsApp confirmation (SMS temporarily disabled — to be re-added later)
+          // DLT SMS first, WhatsApp fallback if the SMS isn't delivered
           const msgArgs = {
             phone: customer.phone,
             customerName: customer.name || 'there',
@@ -453,7 +454,9 @@ const createBooking = async (req, res) => {
             date: appointmentDate,
             time: appointmentTime,
           };
-          sendBookingConfirmation(msgArgs).catch(() => {});
+          sendBookingConfirmationSms(msgArgs)
+            .then((r) => { if (!r?.ok) sendBookingConfirmation(msgArgs).catch(() => {}); })
+            .catch(() => { sendBookingConfirmation(msgArgs).catch(() => {}); });
         }
 
         if (owner?.pushToken) {
@@ -605,6 +608,7 @@ const finalizeBookingAfterPayment = async (booking, salon, customer) => {
     try {
       const { sendExpoPush } = require('../../utils/pushNotification');
       const { sendBookingConfirmation } = require('../../utils/whatsapp');
+      const { sendBookingConfirmationSms } = require('../../utils/sms');
       const Owner = require('../../models/Owner');
       const owner = await Owner.findById(salon.ownerId).select('pushToken').lean();
 
@@ -619,15 +623,18 @@ const finalizeBookingAfterPayment = async (booking, salon, customer) => {
       }
 
       if (customer.phone) {
-        // WhatsApp confirmation (SMS temporarily disabled — to be re-added later)
-        sendBookingConfirmation({
+        // DLT SMS first, WhatsApp fallback if the SMS isn't delivered
+        const msgArgs = {
           phone: customer.phone,
           customerName: customer.name || 'there',
           salonName: salon.name,
           serviceName: combinedName,
           date: appointmentDateStr,
           time: booking.appointmentTime,
-        }).catch(() => {});
+        };
+        sendBookingConfirmationSms(msgArgs)
+          .then((r) => { if (!r?.ok) sendBookingConfirmation(msgArgs).catch(() => {}); })
+          .catch(() => { sendBookingConfirmation(msgArgs).catch(() => {}); });
       }
 
       if (owner?.pushToken) {

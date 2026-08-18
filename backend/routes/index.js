@@ -2168,6 +2168,38 @@ router.put("/owner/bookings/:bookingId", authenticateOwner, validateObjectId("bo
     } catch (e) { /* non-critical, ignore push errors */ }
   }
 
+  // Status alert to customer via DLT SMS (works even without the app installed)
+  try {
+    const statusLabelMap = {
+      confirmed: "confirmed",
+      in_progress: "in progress",
+      cancelled: "cancelled",
+      completed: "completed",
+      no_show: "marked as no-show",
+    };
+    const label = statusLabelMap[status];
+    if (label) {
+      let smsPhone = booking.customerPhone;
+      let smsName = booking.customerName;
+      if (booking.customerId) {
+        const Customer = require("../models/Customer");
+        const c = await Customer.findById(booking.customerId).select("phone name").lean();
+        smsPhone = c?.phone || smsPhone;
+        smsName = c?.name || smsName;
+      }
+      if (smsPhone) {
+        const { sendStatusSms } = require("../utils/sms");
+        sendStatusSms({
+          phone: smsPhone,
+          customerName: smsName || "there",
+          salonName: salon.name,
+          date: booking.appointmentDate.toISOString().slice(0, 10),
+          status: label,
+        }).catch(() => {});
+      }
+    }
+  } catch (e) { /* non-critical */ }
+
   res.json({ success: true, data: booking });
 }));
 
